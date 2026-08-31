@@ -5,6 +5,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query'
 
+import { ChangePasswordModal } from '../components/ChangePasswordModal'
 import { DeleteUserModal } from '../components/DeleteUserModal'
 import { UserDetailsModal } from '../components/UserDetailsModal'
 import { UserFormModal } from '../components/UserFormModal'
@@ -15,6 +16,7 @@ import {
   getUsers,
   updateUser,
 } from '../services/userService'
+
 import type {
   CreateUserData,
   UpdateUserData,
@@ -25,7 +27,6 @@ const ITEMS_PER_PAGE = 5
 
 export function HomePage() {
   const { userId, logout } = useAuth()
-
   const queryClient = useQueryClient()
 
   const [page, setPage] = useState(1)
@@ -36,26 +37,23 @@ export function HomePage() {
   const [isCreateModalOpen, setIsCreateModalOpen] =
     useState(false)
 
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] =
+    useState(false)
+
   const [editingUser, setEditingUser] =
     useState<User | null>(null)
 
   const [deletingUser, setDeletingUser] =
     useState<User | null>(null)
 
-  const [createError, setCreateError] =
-    useState('')
-
-  const [editError, setEditError] =
-    useState('')
-
-  const [deleteError, setDeleteError] =
-    useState('')
+  const [createError, setCreateError] = useState('')
+  const [editError, setEditError] = useState('')
+  const [deleteError, setDeleteError] = useState('')
 
   const {
     data,
     isLoading,
     isError,
-    isFetching,
     refetch,
   } = useQuery({
     queryKey: ['users', page, ITEMS_PER_PAGE],
@@ -105,7 +103,7 @@ export function HomePage() {
 
     onError: () => {
       setEditError(
-        'Não foi possível editar o usuário.',
+        'Não foi possível atualizar o usuário.',
       )
     },
   })
@@ -121,7 +119,9 @@ export function HomePage() {
         data?.users.length === 1 && page > 1
 
       if (isLastItemOnPage) {
-        setPage((currentPage) => currentPage - 1)
+        setPage(
+          (currentPage) => currentPage - 1,
+        )
       }
 
       await queryClient.invalidateQueries({
@@ -136,49 +136,50 @@ export function HomePage() {
     },
   })
 
-  const totalUsers = data?.total ?? 0
-
   const totalPages = Math.max(
     1,
-    Math.ceil(totalUsers / ITEMS_PER_PAGE),
+    Math.ceil(
+      (data?.total ?? 0) / ITEMS_PER_PAGE,
+    ),
   )
-
-  function goToPreviousPage() {
-    setPage((currentPage) =>
-      Math.max(currentPage - 1, 1),
-    )
-  }
-
-  function goToNextPage() {
-    setPage((currentPage) =>
-      Math.min(currentPage + 1, totalPages),
-    )
-  }
 
   return (
     <main>
-      <h1>Usuários</h1>
+      <header>
+        <h1>Usuários</h1>
 
-      <button
-        type="button"
-        onClick={() => {
-          setCreateError('')
-          setIsCreateModalOpen(true)
-        }}
-      >
-        Novo usuário
-      </button>
+        <p>
+          Usuário autenticado: ID {userId}
+        </p>
 
-      <p>
-        Usuário autenticado: {userId}
-      </p>
+        <button
+          type="button"
+          onClick={() => {
+            setCreateError('')
+            setIsCreateModalOpen(true)
+          }}
+        >
+          Novo usuário
+        </button>
 
-      <button
-        type="button"
-        onClick={logout}
-      >
-        Sair
-      </button>
+        {userId !== null && (
+          <button
+            type="button"
+            onClick={() =>
+              setIsChangePasswordModalOpen(true)
+            }
+          >
+            Alterar minha senha
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={logout}
+        >
+          Sair
+        </button>
+      </header>
 
       {isLoading && (
         <p>Carregando usuários...</p>
@@ -210,10 +211,12 @@ export function HomePage() {
         data &&
         data.users.length > 0 && (
           <>
-            <ul>
+            <div>
               {data.users.map((user) => (
-                <li key={user.id}>
-                  {user.name} - {user.email}{' '}
+                <div key={user.id}>
+                  <h2>{user.name}</h2>
+
+                  <p>{user.email}</p>
 
                   <button
                     type="button"
@@ -222,7 +225,7 @@ export function HomePage() {
                     }
                   >
                     Ver detalhes
-                  </button>{' '}
+                  </button>
 
                   {user.id === userId && (
                     <button
@@ -234,7 +237,7 @@ export function HomePage() {
                     >
                       Editar
                     </button>
-                  )}{' '}
+                  )}
 
                   <button
                     type="button"
@@ -245,13 +248,13 @@ export function HomePage() {
                   >
                     Excluir
                   </button>
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
 
             <div>
               <p>
-                Total de usuários: {totalUsers}
+                Total de usuários: {data.total}
               </p>
 
               <p>
@@ -260,9 +263,12 @@ export function HomePage() {
 
               <button
                 type="button"
-                onClick={goToPreviousPage}
-                disabled={
-                  page === 1 || isFetching
+                disabled={page === 1}
+                onClick={() =>
+                  setPage(
+                    (currentPage) =>
+                      currentPage - 1,
+                  )
                 }
               >
                 Anterior
@@ -270,18 +276,16 @@ export function HomePage() {
 
               <button
                 type="button"
-                onClick={goToNextPage}
-                disabled={
-                  page >= totalPages ||
-                  isFetching
+                disabled={page >= totalPages}
+                onClick={() =>
+                  setPage(
+                    (currentPage) =>
+                      currentPage + 1,
+                  )
                 }
               >
                 Próxima
               </button>
-
-              {isFetching && (
-                <span> Carregando...</span>
-              )}
             </div>
           </>
         )}
@@ -303,18 +307,20 @@ export function HomePage() {
 
           <UserFormModal
             mode="create"
+            isSubmitting={
+              createUserMutation.isPending
+            }
             onClose={() => {
               setCreateError('')
               setIsCreateModalOpen(false)
             }}
-            onSubmit={async (data) => {
+            onSubmit={async (formData) => {
+              setCreateError('')
+
               await createUserMutation.mutateAsync(
-                data as CreateUserData,
+                formData as CreateUserData,
               )
             }}
-            isSubmitting={
-              createUserMutation.isPending
-            }
           />
         </div>
       )}
@@ -328,19 +334,21 @@ export function HomePage() {
           <UserFormModal
             mode="edit"
             user={editingUser}
+            isSubmitting={
+              updateUserMutation.isPending
+            }
             onClose={() => {
               setEditError('')
               setEditingUser(null)
             }}
-            onSubmit={async (data) => {
+            onSubmit={async (formData) => {
+              setEditError('')
+
               await updateUserMutation.mutateAsync({
                 id: editingUser.id,
-                data: data as UpdateUserData,
+                data: formData as UpdateUserData,
               })
             }}
-            isSubmitting={
-              updateUserMutation.isPending
-            }
           />
         </div>
       )}
@@ -348,21 +356,31 @@ export function HomePage() {
       {deletingUser && (
         <DeleteUserModal
           user={deletingUser}
-          error={deleteError}
           isDeleting={
             deleteUserMutation.isPending
           }
+          error={deleteError}
           onCancel={() => {
             setDeleteError('')
             setDeletingUser(null)
           }}
-          onConfirm={() => {
+          onConfirm={() =>
             deleteUserMutation.mutate(
               deletingUser.id,
             )
-          }}
+          }
         />
       )}
+
+      {isChangePasswordModalOpen &&
+        userId !== null && (
+          <ChangePasswordModal
+            userId={userId}
+            onClose={() =>
+              setIsChangePasswordModalOpen(false)
+            }
+          />
+        )}
     </main>
   )
 }
