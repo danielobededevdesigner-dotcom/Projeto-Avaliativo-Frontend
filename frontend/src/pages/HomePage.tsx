@@ -1,3 +1,4 @@
+import axios from 'axios'
 import { useState } from 'react'
 import {
   useMutation,
@@ -25,6 +26,20 @@ import type {
 
 const ITEMS_PER_PAGE = 5
 
+function getApiErrorMessage(
+  error: unknown,
+  fallbackMessage: string,
+) {
+  if (axios.isAxiosError(error)) {
+    return (
+      error.response?.data?.message ??
+      fallbackMessage
+    )
+  }
+
+  return fallbackMessage
+}
+
 export function HomePage() {
   const { userId, logout } = useAuth()
   const queryClient = useQueryClient()
@@ -37,8 +52,10 @@ export function HomePage() {
   const [isCreateModalOpen, setIsCreateModalOpen] =
     useState(false)
 
-  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] =
-    useState(false)
+  const [
+    isChangePasswordModalOpen,
+    setIsChangePasswordModalOpen,
+  ] = useState(false)
 
   const [editingUser, setEditingUser] =
     useState<User | null>(null)
@@ -46,9 +63,14 @@ export function HomePage() {
   const [deletingUser, setDeletingUser] =
     useState<User | null>(null)
 
-  const [createError, setCreateError] = useState('')
-  const [editError, setEditError] = useState('')
-  const [deleteError, setDeleteError] = useState('')
+  const [createError, setCreateError] =
+    useState('')
+
+  const [editError, setEditError] =
+    useState('')
+
+  const [deleteError, setDeleteError] =
+    useState('')
 
   const {
     data,
@@ -56,8 +78,13 @@ export function HomePage() {
     isError,
     refetch,
   } = useQuery({
-    queryKey: ['users', page, ITEMS_PER_PAGE],
-    queryFn: () => getUsers(page, ITEMS_PER_PAGE),
+    queryKey: [
+      'users',
+      page,
+      ITEMS_PER_PAGE,
+    ],
+    queryFn: () =>
+      getUsers(page, ITEMS_PER_PAGE),
   })
 
   const createUserMutation = useMutation({
@@ -72,9 +99,12 @@ export function HomePage() {
       })
     },
 
-    onError: () => {
+    onError: (error) => {
       setCreateError(
-        'Não foi possível criar o usuário.',
+        getApiErrorMessage(
+          error,
+          'Não foi possível criar o usuário.',
+        ),
       )
     },
   })
@@ -101,9 +131,12 @@ export function HomePage() {
       })
     },
 
-    onError: () => {
+    onError: (error) => {
       setEditError(
-        'Não foi possível atualizar o usuário.',
+        getApiErrorMessage(
+          error,
+          'Não foi possível atualizar o usuário.',
+        ),
       )
     },
   })
@@ -116,11 +149,13 @@ export function HomePage() {
       setDeletingUser(null)
 
       const isLastItemOnPage =
-        data?.users.length === 1 && page > 1
+        data?.users.length === 1 &&
+        page > 1
 
       if (isLastItemOnPage) {
         setPage(
-          (currentPage) => currentPage - 1,
+          (currentPage) =>
+            currentPage - 1,
         )
       }
 
@@ -129,9 +164,12 @@ export function HomePage() {
       })
     },
 
-    onError: () => {
+    onError: (error) => {
       setDeleteError(
-        'Não foi possível excluir o usuário.',
+        getApiErrorMessage(
+          error,
+          'Não foi possível excluir o usuário.',
+        ),
       )
     },
   })
@@ -139,7 +177,8 @@ export function HomePage() {
   const totalPages = Math.max(
     1,
     Math.ceil(
-      (data?.total ?? 0) / ITEMS_PER_PAGE,
+      (data?.total ?? 0) /
+        ITEMS_PER_PAGE,
     ),
   )
 
@@ -166,7 +205,9 @@ export function HomePage() {
           <button
             type="button"
             onClick={() =>
-              setIsChangePasswordModalOpen(true)
+              setIsChangePasswordModalOpen(
+                true,
+              )
             }
           >
             Alterar minha senha
@@ -188,7 +229,8 @@ export function HomePage() {
       {isError && (
         <div>
           <p>
-            Não foi possível carregar os usuários.
+            Não foi possível carregar os
+            usuários.
           </p>
 
           <button
@@ -203,7 +245,9 @@ export function HomePage() {
       {!isLoading &&
         !isError &&
         data?.users.length === 0 && (
-          <p>Nenhum usuário encontrado.</p>
+          <p>
+            Nenhum usuário encontrado.
+          </p>
         )}
 
       {!isLoading &&
@@ -221,23 +265,23 @@ export function HomePage() {
                   <button
                     type="button"
                     onClick={() =>
-                      setSelectedUserId(user.id)
+                      setSelectedUserId(
+                        user.id,
+                      )
                     }
                   >
                     Ver detalhes
                   </button>
 
-                  {user.id === userId && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditError('')
-                        setEditingUser(user)
-                      }}
-                    >
-                      Editar
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditError('')
+                      setEditingUser(user)
+                    }}
+                  >
+                    Editar
+                  </button>
 
                   <button
                     type="button"
@@ -254,11 +298,13 @@ export function HomePage() {
 
             <div>
               <p>
-                Total de usuários: {data.total}
+                Total de usuários:{' '}
+                {data.total}
               </p>
 
               <p>
-                Página {page} de {totalPages}
+                Página {page} de{' '}
+                {totalPages}
               </p>
 
               <button
@@ -276,7 +322,9 @@ export function HomePage() {
 
               <button
                 type="button"
-                disabled={page >= totalPages}
+                disabled={
+                  page >= totalPages
+                }
                 onClick={() =>
                   setPage(
                     (currentPage) =>
@@ -314,7 +362,9 @@ export function HomePage() {
               setCreateError('')
               setIsCreateModalOpen(false)
             }}
-            onSubmit={async (formData) => {
+            onSubmit={async (
+              formData,
+            ) => {
               setCreateError('')
 
               await createUserMutation.mutateAsync(
@@ -341,13 +391,18 @@ export function HomePage() {
               setEditError('')
               setEditingUser(null)
             }}
-            onSubmit={async (formData) => {
+            onSubmit={async (
+              formData,
+            ) => {
               setEditError('')
 
-              await updateUserMutation.mutateAsync({
-                id: editingUser.id,
-                data: formData as UpdateUserData,
-              })
+              await updateUserMutation.mutateAsync(
+                {
+                  id: editingUser.id,
+                  data:
+                    formData as UpdateUserData,
+                },
+              )
             }}
           />
         </div>
@@ -377,7 +432,9 @@ export function HomePage() {
           <ChangePasswordModal
             userId={userId}
             onClose={() =>
-              setIsChangePasswordModalOpen(false)
+              setIsChangePasswordModalOpen(
+                false,
+              )
             }
           />
         )}

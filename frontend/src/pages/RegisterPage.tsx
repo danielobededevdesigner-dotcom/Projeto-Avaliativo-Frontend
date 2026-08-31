@@ -1,3 +1,4 @@
+import axios from 'axios'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -18,25 +19,49 @@ export function RegisterPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    reset,
+    formState: {
+      errors,
+      isSubmitting,
+    },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
   })
 
-  async function handleRegister(data: RegisterFormData) {
-    try {
-      setError('')
-      setSuccess('')
+  async function onSubmit(
+    data: RegisterFormData,
+  ) {
+    setError('')
+    setSuccess('')
 
+    try {
       await createUser(data)
 
-      setSuccess('Usuário cadastrado com sucesso.')
+      setSuccess(
+        'Usuário cadastrado com sucesso.',
+      )
+
+      reset()
 
       setTimeout(() => {
         navigate('/login')
       }, 1200)
-    } catch {
-      setError('Não foi possível realizar o cadastro.')
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        const message =
+          err.response?.data?.message
+
+        setError(
+          message ||
+            'Não foi possível realizar o cadastro.',
+        )
+
+        return
+      }
+
+      setError(
+        'Não foi possível realizar o cadastro.',
+      )
     }
   }
 
@@ -44,17 +69,25 @@ export function RegisterPage() {
     <main>
       <h1>Cadastro</h1>
 
-      <form onSubmit={handleSubmit(handleRegister)}>
-        {error && <p>{error}</p>}
-        {success && <p>{success}</p>}
+      {error && (
+        <p>{error}</p>
+      )}
 
+      {success && (
+        <p>{success}</p>
+      )}
+
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+      >
         <div>
-          <label htmlFor="name">Nome</label>
+          <label htmlFor="name">
+            Nome
+          </label>
 
           <input
             id="name"
             type="text"
-            placeholder="Seu nome"
             {...register('name')}
           />
 
@@ -64,12 +97,13 @@ export function RegisterPage() {
         </div>
 
         <div>
-          <label htmlFor="email">E-mail</label>
+          <label htmlFor="email">
+            E-mail
+          </label>
 
           <input
             id="email"
             type="email"
-            placeholder="voce@email.com"
             {...register('email')}
           />
 
@@ -79,12 +113,13 @@ export function RegisterPage() {
         </div>
 
         <div>
-          <label htmlFor="password">Senha</label>
+          <label htmlFor="password">
+            Senha
+          </label>
 
           <input
             id="password"
             type="password"
-            placeholder="Sua senha"
             {...register('password')}
           />
 
@@ -97,7 +132,9 @@ export function RegisterPage() {
           type="submit"
           disabled={isSubmitting}
         >
-          {isSubmitting ? 'Cadastrando...' : 'Cadastrar'}
+          {isSubmitting
+            ? 'Cadastrando...'
+            : 'Cadastrar'}
         </button>
       </form>
 
