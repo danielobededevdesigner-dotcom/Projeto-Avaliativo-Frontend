@@ -1,3 +1,5 @@
+import { useModalClose } from '../hooks/useModalClose'
+
 import type { User } from '../types/user'
 
 import '../styles/modal.css'
@@ -17,10 +19,19 @@ export function DeleteUserModal({
   onCancel,
   onConfirm,
 }: DeleteUserModalProps) {
+  const { handleBackdropClick } =
+    useModalClose(
+      onCancel,
+      !isDeleting,
+    )
+
   return (
     <div
       className="modal-overlay"
       role="presentation"
+      onMouseDown={
+        handleBackdropClick
+      }
     >
       <section
         className="modal-card delete-modal-card"
@@ -29,7 +40,10 @@ export function DeleteUserModal({
         aria-labelledby="delete-user-title"
       >
         <div className="modal-body delete-modal-content">
-          <div className="delete-modal-icon">
+          <div
+            className="delete-modal-icon"
+            aria-hidden="true"
+          >
             !
           </div>
 
@@ -39,7 +53,10 @@ export function DeleteUserModal({
 
           <p className="delete-modal-description">
             Tem certeza de que deseja excluir{' '}
-            <strong>{user.name}</strong>?
+            <strong>
+              {user.name}
+            </strong>
+            ?
           </p>
 
           <p className="delete-modal-warning">
@@ -52,15 +69,22 @@ export function DeleteUserModal({
                 .trim()
                 .split(' ')
                 .slice(0, 2)
-                .map((part) => part[0])
+                .map(
+                  (part) =>
+                    part[0],
+                )
                 .join('')
                 .toUpperCase()}
             </div>
 
             <div>
-              <strong>{user.name}</strong>
+              <strong>
+                {user.name}
+              </strong>
 
-              <span>{user.email}</span>
+              <span>
+                {user.email}
+              </span>
 
               <small>
                 ID #{user.id}

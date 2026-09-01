@@ -4,15 +4,20 @@ import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../hooks/useAuth'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
+
 import {
   loginSchema,
   type LoginFormData,
 } from '../schemas/loginSchema'
+
 import { loginRequest } from '../services/authService'
 
 import '../styles/auth.css'
 
 export function LoginPage() {
+  useDocumentTitle('Login')
+
   const navigate = useNavigate()
   const { login } = useAuth()
 

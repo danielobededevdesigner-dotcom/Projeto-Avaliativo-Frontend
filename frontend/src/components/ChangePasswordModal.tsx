@@ -9,6 +9,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 import { useAuth } from '../hooks/useAuth'
+import { useModalClose } from '../hooks/useModalClose'
 import { changePassword } from '../services/userService'
 
 import '../styles/modal.css'
@@ -17,11 +18,17 @@ const changePasswordSchema = z
   .object({
     currentPassword: z
       .string()
-      .min(1, 'Informe a senha atual'),
+      .min(
+        1,
+        'Informe a senha atual',
+      ),
 
     newPassword: z
       .string()
-      .min(1, 'Informe a nova senha')
+      .min(
+        1,
+        'Informe a nova senha',
+      )
       .min(
         6,
         'A nova senha deve ter pelo menos 6 caracteres',
@@ -29,14 +36,18 @@ const changePasswordSchema = z
 
     confirmPassword: z
       .string()
-      .min(1, 'Confirme a nova senha'),
+      .min(
+        1,
+        'Confirme a nova senha',
+      ),
   })
   .refine(
     (data) =>
       data.newPassword ===
       data.confirmPassword,
     {
-      message: 'As senhas não coincidem',
+      message:
+        'As senhas não coincidem',
       path: ['confirmPassword'],
     },
   )
@@ -105,6 +116,24 @@ export function ChangePasswordModal({
     },
   })
 
+  /*
+   * O modal pode ser fechado somente
+   * enquanto nenhuma alteração estiver
+   * acontecendo e antes do sucesso.
+   *
+   * Após alterar a senha, o logout
+   * obrigatório não pode ser cancelado.
+   */
+  const canCloseModal =
+    !mutation.isPending &&
+    !mutation.isSuccess
+
+  const { handleBackdropClick } =
+    useModalClose(
+      onClose,
+      canCloseModal,
+    )
+
   useEffect(() => {
     if (!mutation.isSuccess) {
       return
@@ -114,7 +143,10 @@ export function ChangePasswordModal({
       () => {
         setCountdown((current) => {
           if (current <= 1) {
-            window.clearInterval(interval)
+            window.clearInterval(
+              interval,
+            )
+
             logout()
 
             return 0
@@ -162,6 +194,9 @@ export function ChangePasswordModal({
     <div
       className="modal-overlay"
       role="presentation"
+      onMouseDown={
+        handleBackdropClick
+      }
     >
       <section
         className="modal-card"
@@ -184,7 +219,10 @@ export function ChangePasswordModal({
         <div className="modal-body">
           {mutation.isSuccess ? (
             <div className="password-success-content">
-              <div className="password-success-icon">
+              <div
+                className="password-success-icon"
+                aria-hidden="true"
+              >
                 ✓
               </div>
 
@@ -247,6 +285,10 @@ export function ChangePasswordModal({
                     }
                     placeholder="Digite sua senha atual"
                     autoComplete="current-password"
+                    autoFocus
+                    disabled={
+                      mutation.isPending
+                    }
                     {...register(
                       'currentPassword',
                     )}
@@ -255,6 +297,17 @@ export function ChangePasswordModal({
                   <button
                     className="modal-password-toggle"
                     type="button"
+                    disabled={
+                      mutation.isPending
+                    }
+                    aria-label={
+                      showCurrentPassword
+                        ? 'Ocultar senha atual'
+                        : 'Mostrar senha atual'
+                    }
+                    aria-pressed={
+                      showCurrentPassword
+                    }
                     onClick={() =>
                       setShowCurrentPassword(
                         (current) =>
@@ -294,6 +347,9 @@ export function ChangePasswordModal({
                     }
                     placeholder="Mínimo de 6 caracteres"
                     autoComplete="new-password"
+                    disabled={
+                      mutation.isPending
+                    }
                     {...register(
                       'newPassword',
                     )}
@@ -302,6 +358,17 @@ export function ChangePasswordModal({
                   <button
                     className="modal-password-toggle"
                     type="button"
+                    disabled={
+                      mutation.isPending
+                    }
+                    aria-label={
+                      showNewPassword
+                        ? 'Ocultar nova senha'
+                        : 'Mostrar nova senha'
+                    }
+                    aria-pressed={
+                      showNewPassword
+                    }
                     onClick={() =>
                       setShowNewPassword(
                         (current) =>
@@ -341,6 +408,9 @@ export function ChangePasswordModal({
                     }
                     placeholder="Digite novamente"
                     autoComplete="new-password"
+                    disabled={
+                      mutation.isPending
+                    }
                     {...register(
                       'confirmPassword',
                     )}
@@ -349,6 +419,17 @@ export function ChangePasswordModal({
                   <button
                     className="modal-password-toggle"
                     type="button"
+                    disabled={
+                      mutation.isPending
+                    }
+                    aria-label={
+                      showConfirmPassword
+                        ? 'Ocultar confirmação da senha'
+                        : 'Mostrar confirmação da senha'
+                    }
+                    aria-pressed={
+                      showConfirmPassword
+                    }
                     onClick={() =>
                       setShowConfirmPassword(
                         (current) =>
@@ -374,7 +455,10 @@ export function ChangePasswordModal({
               </div>
 
               {mutation.isError && (
-                <div className="modal-error">
+                <div
+                  className="modal-error"
+                  role="alert"
+                >
                   {getErrorMessage()}
                 </div>
               )}

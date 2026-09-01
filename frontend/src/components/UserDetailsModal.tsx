@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 
+import { useModalClose } from '../hooks/useModalClose'
 import { getUserById } from '../services/userService'
 
 import '../styles/modal.css'
@@ -23,6 +24,9 @@ export function UserDetailsModal({
   userId,
   onClose,
 }: UserDetailsModalProps) {
+  const { handleBackdropClick } =
+    useModalClose(onClose)
+
   const {
     data: user,
     isLoading,
@@ -30,13 +34,17 @@ export function UserDetailsModal({
     refetch,
   } = useQuery({
     queryKey: ['user', userId],
-    queryFn: () => getUserById(userId),
+    queryFn: () =>
+      getUserById(userId),
   })
 
   return (
     <div
       className="modal-overlay"
       role="presentation"
+      onMouseDown={
+        handleBackdropClick
+      }
     >
       <section
         className="modal-card"
@@ -80,7 +88,9 @@ export function UserDetailsModal({
               <button
                 className="modal-button modal-button-primary"
                 type="button"
-                onClick={() => refetch()}
+                onClick={() =>
+                  refetch()
+                }
               >
                 Tentar novamente
               </button>
@@ -93,11 +103,15 @@ export function UserDetailsModal({
               <>
                 <div className="details-profile">
                   <div className="details-avatar">
-                    {getInitials(user.name)}
+                    {getInitials(
+                      user.name,
+                    )}
                   </div>
 
                   <div>
-                    <h3>{user.name}</h3>
+                    <h3>
+                      {user.name}
+                    </h3>
 
                     <span>
                       Usuário #{user.id}
@@ -107,21 +121,30 @@ export function UserDetailsModal({
 
                 <div className="details-list">
                   <div className="details-item">
-                    <span>ID</span>
+                    <span>
+                      ID
+                    </span>
+
                     <strong>
                       #{user.id}
                     </strong>
                   </div>
 
                   <div className="details-item">
-                    <span>Nome</span>
+                    <span>
+                      Nome
+                    </span>
+
                     <strong>
                       {user.name}
                     </strong>
                   </div>
 
                   <div className="details-item">
-                    <span>E-mail</span>
+                    <span>
+                      E-mail
+                    </span>
+
                     <strong>
                       {user.email}
                     </strong>

@@ -5,11 +5,14 @@ import {
   useNavigate,
 } from 'react-router-dom'
 
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { forgotPasswordRequest } from '../services/authService'
 
 import '../styles/auth.css'
 
 export function ForgotPasswordPage() {
+  useDocumentTitle('Recuperar senha')
+
   const navigate = useNavigate()
 
   const [email, setEmail] = useState('')
@@ -115,6 +118,7 @@ export function ForgotPasswordPage() {
                 type="email"
                 placeholder="seu@email.com"
                 autoComplete="email"
+                autoFocus
                 value={email}
                 onChange={(event) =>
                   setEmail(

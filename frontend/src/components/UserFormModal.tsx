@@ -1,7 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect } from 'react'
+import {
+  useEffect,
+  useState,
+} from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+
+import { useModalClose } from '../hooks/useModalClose'
 
 import type {
   CreateUserData,
@@ -57,24 +62,50 @@ type FormData = {
 
 type UserFormModalProps = {
   mode: 'create' | 'edit'
+
   user?: User | null
+
+  error?: string
+
   onClose: () => void
+
   onSubmit: (
     data:
       | CreateUserData
       | UpdateUserData,
   ) => Promise<void>
+
   isSubmitting: boolean
 }
 
 export function UserFormModal({
   mode,
   user,
+  error = '',
   onClose,
   onSubmit,
   isSubmitting,
 }: UserFormModalProps) {
   const isCreate = mode === 'create'
+
+  /*
+   * Permite fechar o modal com Esc
+   * ou clicando no fundo escuro.
+   *
+   * Durante o salvamento, o fechamento
+   * fica bloqueado para evitar interromper
+   * a operação.
+   */
+  const { handleBackdropClick } =
+    useModalClose(
+      onClose,
+      !isSubmitting,
+    )
+
+  const [
+    showPassword,
+    setShowPassword,
+  ] = useState(false)
 
   const {
     register,
@@ -87,6 +118,7 @@ export function UserFormModal({
         ? createSchema
         : editSchema,
     ),
+
     defaultValues: {
       name: user?.name ?? '',
       email: user?.email ?? '',
@@ -100,31 +132,45 @@ export function UserFormModal({
       email: user?.email ?? '',
       password: '',
     })
+
+    setShowPassword(false)
   }, [user, reset])
 
   async function submitForm(
     data: FormData,
   ) {
-    if (isCreate) {
+    try {
+      if (isCreate) {
+        await onSubmit({
+          name: data.name,
+          email: data.email,
+          password:
+            data.password ?? '',
+        })
+
+        return
+      }
+
       await onSubmit({
         name: data.name,
         email: data.email,
-        password: data.password ?? '',
       })
-
-      return
+    } catch {
+      /*
+       * O erro da API é tratado
+       * pelo HomePage e recebido
+       * através da prop "error".
+       */
     }
-
-    await onSubmit({
-      name: data.name,
-      email: data.email,
-    })
   }
 
   return (
     <div
       className="modal-overlay"
       role="presentation"
+      onMouseDown={
+        handleBackdropClick
+      }
     >
       <section
         className="modal-card"
@@ -162,6 +208,9 @@ export function UserFormModal({
                 id="user-name"
                 type="text"
                 placeholder="Nome do usuário"
+                autoComplete="name"
+                autoFocus
+                disabled={isSubmitting}
                 {...register('name')}
               />
 
@@ -181,6 +230,8 @@ export function UserFormModal({
                 id="user-email"
                 type="email"
                 placeholder="usuario@email.com"
+                autoComplete="email"
+                disabled={isSubmitting}
                 {...register('email')}
               />
 
@@ -197,12 +248,46 @@ export function UserFormModal({
                   Senha
                 </label>
 
-                <input
-                  id="user-password"
-                  type="password"
-                  placeholder="Mínimo de 6 caracteres"
-                  {...register('password')}
-                />
+                <div className="modal-password-field">
+                  <input
+                    id="user-password"
+                    type={
+                      showPassword
+                        ? 'text'
+                        : 'password'
+                    }
+                    placeholder="Mínimo de 6 caracteres"
+                    autoComplete="new-password"
+                    disabled={isSubmitting}
+                    {...register(
+                      'password',
+                    )}
+                  />
+
+                  <button
+                    className="modal-password-toggle"
+                    type="button"
+                    disabled={isSubmitting}
+                    aria-label={
+                      showPassword
+                        ? 'Ocultar senha'
+                        : 'Mostrar senha'
+                    }
+                    aria-pressed={
+                      showPassword
+                    }
+                    onClick={() =>
+                      setShowPassword(
+                        (current) =>
+                          !current,
+                      )
+                    }
+                  >
+                    {showPassword
+                      ? 'Ocultar'
+                      : 'Mostrar'}
+                  </button>
+                </div>
 
                 {errors.password && (
                   <span className="modal-field-error">
@@ -212,6 +297,15 @@ export function UserFormModal({
                     }
                   </span>
                 )}
+              </div>
+            )}
+
+            {error && (
+              <div
+                className="modal-error"
+                role="alert"
+              >
+                {error}
               </div>
             )}
 

@@ -8,6 +8,7 @@ import {
 
 import { ChangePasswordModal } from '../components/ChangePasswordModal'
 import { DeleteUserModal } from '../components/DeleteUserModal'
+import { Toast } from '../components/Toast'
 import { UserDetailsModal } from '../components/UserDetailsModal'
 import { UserFormModal } from '../components/UserFormModal'
 import { useAuth } from '../hooks/useAuth'
@@ -91,6 +92,11 @@ export function HomePage() {
   const [deleteError, setDeleteError] =
     useState('')
 
+  const [
+    successMessage,
+    setSuccessMessage,
+  ] = useState('')
+
   /*
    * Usuário atualmente conectado.
    */
@@ -138,6 +144,10 @@ export function HomePage() {
       setCreateError('')
       setIsCreateModalOpen(false)
 
+      setSuccessMessage(
+        'Usuário criado com sucesso.',
+      )
+
       await queryClient.invalidateQueries({
         queryKey: ['users'],
       })
@@ -168,6 +178,10 @@ export function HomePage() {
     onSuccess: async () => {
       setEditError('')
       setEditingUser(null)
+
+      setSuccessMessage(
+        'Usuário atualizado com sucesso.',
+      )
 
       await queryClient.invalidateQueries({
         queryKey: ['users'],
@@ -204,6 +218,10 @@ export function HomePage() {
     onSuccess: async () => {
       setDeleteError('')
       setDeletingUser(null)
+
+      setSuccessMessage(
+        'Usuário excluído com sucesso.',
+      )
 
       /*
        * Se o usuário removido era o único
@@ -725,69 +743,55 @@ export function HomePage() {
       )}
 
       {isCreateModalOpen && (
-        <div>
-          {createError && (
-            <p className="page-error">
-              {createError}
-            </p>
-          )}
+        <UserFormModal
+          mode="create"
+          error={createError}
+          isSubmitting={
+            createUserMutation.isPending
+          }
+          onClose={() => {
+            setCreateError('')
+            setIsCreateModalOpen(false)
+          }}
+          onSubmit={async (
+            formData,
+          ) => {
+            setCreateError('')
 
-          <UserFormModal
-            mode="create"
-            isSubmitting={
-              createUserMutation.isPending
-            }
-            onClose={() => {
-              setCreateError('')
-              setIsCreateModalOpen(false)
-            }}
-            onSubmit={async (
-              formData,
-            ) => {
-              setCreateError('')
-
-              await createUserMutation.mutateAsync(
-                formData as CreateUserData,
-              )
-            }}
-          />
-        </div>
+            await createUserMutation.mutateAsync(
+              formData as CreateUserData,
+            )
+          }}
+        />
       )}
 
       {editingUser && (
-        <div>
-          {editError && (
-            <p className="page-error">
-              {editError}
-            </p>
-          )}
+        <UserFormModal
+          mode="edit"
+          user={editingUser}
+          error={editError}
+          isSubmitting={
+            updateUserMutation.isPending
+          }
+          onClose={() => {
+            setEditError('')
+            setEditingUser(null)
+          }}
+          onSubmit={async (
+            formData,
+          ) => {
+            setEditError('')
 
-          <UserFormModal
-            mode="edit"
-            user={editingUser}
-            isSubmitting={
-              updateUserMutation.isPending
-            }
-            onClose={() => {
-              setEditError('')
-              setEditingUser(null)
-            }}
-            onSubmit={async (
-              formData,
-            ) => {
-              setEditError('')
+            await updateUserMutation.mutateAsync(
+              {
+                id: editingUser.id,
 
-              await updateUserMutation.mutateAsync(
-                {
-                  id: editingUser.id,
-
-                  data:
-                    formData as UpdateUserData,
-                },
-              )
-            }}
-          />
-        </div>
+                data:
+                  formData as UpdateUserData,
+              },
+            )
+          }}
+        />
       )}
 
       {deletingUser && (
@@ -820,6 +824,15 @@ export function HomePage() {
             }
           />
         )}
+
+      {successMessage && (
+        <Toast
+          message={successMessage}
+          onClose={() =>
+            setSuccessMessage('')
+          }
+        />
+      )}
     </main>
   )
 }

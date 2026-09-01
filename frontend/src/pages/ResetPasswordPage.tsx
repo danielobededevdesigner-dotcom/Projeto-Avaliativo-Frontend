@@ -9,6 +9,7 @@ import {
 } from 'react-router-dom'
 import { z } from 'zod'
 
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { resetPasswordRequest } from '../services/authService'
 
 import '../styles/auth.css'
@@ -42,6 +43,8 @@ type ResetPasswordFormData = z.infer<
 >
 
 export function ResetPasswordPage() {
+  useDocumentTitle('Redefinir senha')
+
   const navigate = useNavigate()
 
   const [searchParams] =
@@ -189,6 +192,7 @@ export function ResetPasswordPage() {
                   }
                   placeholder="Mínimo de 6 caracteres"
                   autoComplete="new-password"
+                  autoFocus
                   {...register(
                     'newPassword',
                   )}
@@ -197,6 +201,14 @@ export function ResetPasswordPage() {
                 <button
                   className="password-toggle"
                   type="button"
+                  aria-label={
+                    showNewPassword
+                      ? 'Ocultar nova senha'
+                      : 'Mostrar nova senha'
+                  }
+                  aria-pressed={
+                    showNewPassword
+                  }
                   onClick={() =>
                     setShowNewPassword(
                       (current) =>
@@ -243,6 +255,14 @@ export function ResetPasswordPage() {
                 <button
                   className="password-toggle"
                   type="button"
+                  aria-label={
+                    showConfirmPassword
+                      ? 'Ocultar confirmação da senha'
+                      : 'Mostrar confirmação da senha'
+                  }
+                  aria-pressed={
+                    showConfirmPassword
+                  }
                   onClick={() =>
                     setShowConfirmPassword(
                       (current) =>
@@ -280,6 +300,7 @@ export function ResetPasswordPage() {
               <div
                 className="auth-success"
                 role="status"
+                aria-live="polite"
               >
                 {success}
               </div>

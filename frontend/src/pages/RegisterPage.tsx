@@ -2,19 +2,37 @@ import axios from 'axios'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link, useNavigate } from 'react-router-dom'
+import {
+  Link,
+  useNavigate,
+} from 'react-router-dom'
+
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
 import {
   registerSchema,
   type RegisterFormData,
 } from '../schemas/registerSchema'
+
 import { createUser } from '../services/userService'
 
+import '../styles/auth.css'
+
 export function RegisterPage() {
+  useDocumentTitle('Cadastro')
+
   const navigate = useNavigate()
 
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const [error, setError] =
+    useState('')
+
+  const [success, setSuccess] =
+    useState('')
+
+  const [
+    showPassword,
+    setShowPassword,
+  ] = useState(false)
 
   const {
     register,
@@ -25,7 +43,9 @@ export function RegisterPage() {
       isSubmitting,
     },
   } = useForm<RegisterFormData>({
-    resolver: zodResolver(registerSchema),
+    resolver: zodResolver(
+      registerSchema,
+    ),
   })
 
   async function onSubmit(
@@ -38,14 +58,14 @@ export function RegisterPage() {
       await createUser(data)
 
       setSuccess(
-        'Usuário cadastrado com sucesso.',
+        'Conta criada com sucesso! Redirecionando para o login...',
       )
 
       reset()
 
-      setTimeout(() => {
+      window.setTimeout(() => {
         navigate('/login')
-      }, 1200)
+      }, 1800)
     } catch (err) {
       if (axios.isAxiosError(err)) {
         const message =
@@ -66,84 +86,200 @@ export function RegisterPage() {
   }
 
   return (
-    <main>
-      <h1>Cadastro</h1>
+    <main className="register-auth-page">
+      <section className="register-brand">
+        <div className="register-aurora register-aurora-one" />
+        <div className="register-aurora register-aurora-two" />
+        <div className="register-aurora register-aurora-three" />
 
-      {error && (
-        <p>{error}</p>
-      )}
+        <div className="register-glass-layer" />
 
-      {success && (
-        <p>{success}</p>
-      )}
+        <div className="register-brand-content">
+          <div className="register-logo">
+            UserFlow
+          </div>
 
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-      >
-        <div>
-          <label htmlFor="name">
-            Nome
-          </label>
+          <div className="register-brand-copy">
+            <h1>
+              Comece a gerenciar usuários
+              de forma simples.
+            </h1>
 
-          <input
-            id="name"
-            type="text"
-            {...register('name')}
-          />
+            <p>
+              Crie sua conta e tenha acesso
+              a uma experiência moderna para
+              gerenciamento, cadastro e
+              manutenção de usuários.
+            </p>
+          </div>
 
-          {errors.name && (
-            <p>{errors.name.message}</p>
-          )}
+          <div className="register-tech-badge">
+            React + TypeScript
+          </div>
         </div>
+      </section>
 
-        <div>
-          <label htmlFor="email">
-            E-mail
-          </label>
+      <section className="register-panel">
+        <div className="register-card">
+          <header className="register-header">
+            <span>
+              BEM-VINDO AO USERFLOW
+            </span>
 
-          <input
-            id="email"
-            type="email"
-            {...register('email')}
-          />
+            <h2>
+              Criar conta
+            </h2>
 
-          {errors.email && (
-            <p>{errors.email.message}</p>
+            <p>
+              Preencha seus dados para
+              realizar seu cadastro.
+            </p>
+          </header>
+
+          {error && (
+            <div
+              className="register-message register-message-error"
+              role="alert"
+            >
+              {error}
+            </div>
           )}
-        </div>
 
-        <div>
-          <label htmlFor="password">
-            Senha
-          </label>
+          {success && (
+            <div
+              className="register-message register-message-success"
+              role="status"
+              aria-live="polite"
+            >
+              <span>✓</span>
 
-          <input
-            id="password"
-            type="password"
-            {...register('password')}
-          />
-
-          {errors.password && (
-            <p>{errors.password.message}</p>
+              {success}
+            </div>
           )}
+
+          <form
+            className="register-form"
+            onSubmit={handleSubmit(
+              onSubmit,
+            )}
+          >
+            <div className="register-field">
+              <label htmlFor="name">
+                Nome
+              </label>
+
+              <input
+                id="name"
+                type="text"
+                placeholder="Digite seu nome"
+                autoComplete="name"
+                autoFocus
+                {...register('name')}
+              />
+
+              {errors.name && (
+                <span className="register-field-error">
+                  {errors.name.message}
+                </span>
+              )}
+            </div>
+
+            <div className="register-field">
+              <label htmlFor="email">
+                E-mail
+              </label>
+
+              <input
+                id="email"
+                type="email"
+                placeholder="seu@email.com"
+                autoComplete="email"
+                {...register('email')}
+              />
+
+              {errors.email && (
+                <span className="register-field-error">
+                  {errors.email.message}
+                </span>
+              )}
+            </div>
+
+            <div className="register-field">
+              <label htmlFor="password">
+                Senha
+              </label>
+
+              <div className="register-password-field">
+                <input
+                  id="password"
+                  type={
+                    showPassword
+                      ? 'text'
+                      : 'password'
+                  }
+                  placeholder="Crie uma senha"
+                  autoComplete="new-password"
+                  {...register(
+                    'password',
+                  )}
+                />
+
+                <button
+                  className="register-password-toggle"
+                  type="button"
+                  aria-label={
+                    showPassword
+                      ? 'Ocultar senha'
+                      : 'Mostrar senha'
+                  }
+                  aria-pressed={
+                    showPassword
+                  }
+                  onClick={() =>
+                    setShowPassword(
+                      (current) =>
+                        !current,
+                    )
+                  }
+                >
+                  {showPassword
+                    ? 'Ocultar'
+                    : 'Mostrar'}
+                </button>
+              </div>
+
+              {errors.password && (
+                <span className="register-field-error">
+                  {
+                    errors.password
+                      .message
+                  }
+                </span>
+              )}
+            </div>
+
+            <button
+              className="register-submit"
+              type="submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting
+                ? 'Criando conta...'
+                : 'Criar conta'}
+            </button>
+          </form>
+
+          <div className="register-footer">
+            <span>
+              Já possui uma conta?
+            </span>
+
+            <Link to="/login">
+              Entrar
+            </Link>
+          </div>
         </div>
-
-        <button
-          type="submit"
-          disabled={isSubmitting}
-        >
-          {isSubmitting
-            ? 'Cadastrando...'
-            : 'Cadastrar'}
-        </button>
-      </form>
-
-      <p>
-        Já possui conta?{' '}
-        <Link to="/login">
-          Entrar
-        </Link>
-      </p>
+      </section>
     </main>
   )
 }
