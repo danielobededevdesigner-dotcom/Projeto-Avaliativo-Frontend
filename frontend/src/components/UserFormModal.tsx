@@ -9,11 +9,16 @@ import type {
   User,
 } from '../types/user'
 
+import '../styles/modal.css'
+
 const createSchema = z.object({
   name: z
     .string()
     .min(1, 'Informe o nome')
-    .min(2, 'O nome deve ter pelo menos 2 caracteres'),
+    .min(
+      2,
+      'O nome deve ter pelo menos 2 caracteres',
+    ),
 
   email: z
     .string()
@@ -23,14 +28,20 @@ const createSchema = z.object({
   password: z
     .string()
     .min(1, 'Informe a senha')
-    .min(6, 'A senha deve ter pelo menos 6 caracteres'),
+    .min(
+      6,
+      'A senha deve ter pelo menos 6 caracteres',
+    ),
 })
 
 const editSchema = z.object({
   name: z
     .string()
     .min(1, 'Informe o nome')
-    .min(2, 'O nome deve ter pelo menos 2 caracteres'),
+    .min(
+      2,
+      'O nome deve ter pelo menos 2 caracteres',
+    ),
 
   email: z
     .string()
@@ -38,15 +49,20 @@ const editSchema = z.object({
     .email('Informe um e-mail válido'),
 })
 
-type CreateFormData = z.infer<typeof createSchema>
-type EditFormData = z.infer<typeof editSchema>
+type FormData = {
+  name: string
+  email: string
+  password?: string
+}
 
 type UserFormModalProps = {
   mode: 'create' | 'edit'
   user?: User | null
   onClose: () => void
   onSubmit: (
-    data: CreateUserData | UpdateUserData,
+    data:
+      | CreateUserData
+      | UpdateUserData,
   ) => Promise<void>
   isSubmitting: boolean
 }
@@ -58,24 +74,23 @@ export function UserFormModal({
   onSubmit,
   isSubmitting,
 }: UserFormModalProps) {
-  const schema =
-    mode === 'create'
-      ? createSchema
-      : editSchema
+  const isCreate = mode === 'create'
 
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<CreateFormData | EditFormData>({
-    resolver: zodResolver(schema),
+  } = useForm<FormData>({
+    resolver: zodResolver(
+      isCreate
+        ? createSchema
+        : editSchema,
+    ),
     defaultValues: {
       name: user?.name ?? '',
       email: user?.email ?? '',
-      ...(mode === 'create'
-        ? { password: '' }
-        : {}),
+      password: '',
     },
   })
 
@@ -83,112 +98,148 @@ export function UserFormModal({
     reset({
       name: user?.name ?? '',
       email: user?.email ?? '',
-      ...(mode === 'create'
-        ? { password: '' }
-        : {}),
+      password: '',
     })
-  }, [mode, user, reset])
+  }, [user, reset])
 
-  async function handleFormSubmit(
-    data: CreateFormData | EditFormData,
+  async function submitForm(
+    data: FormData,
   ) {
-    if (mode === 'create') {
-      await onSubmit(
-        data as CreateUserData,
-      )
+    if (isCreate) {
+      await onSubmit({
+        name: data.name,
+        email: data.email,
+        password: data.password ?? '',
+      })
+
       return
     }
 
-    const { name, email } = data
-
     await onSubmit({
-      name,
-      email,
+      name: data.name,
+      email: data.email,
     })
   }
 
   return (
-    <div>
-      <h2>
-        {mode === 'create'
-          ? 'Novo usuário'
-          : 'Editar usuário'}
-      </h2>
-
-      <form
-        onSubmit={handleSubmit(
-          handleFormSubmit,
-        )}
+    <div
+      className="modal-overlay"
+      role="presentation"
+    >
+      <section
+        className="modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="user-form-title"
       >
-        <div>
-          <label htmlFor="user-name">
-            Nome
-          </label>
+        <header className="modal-header">
+          <h2 id="user-form-title">
+            {isCreate
+              ? 'Novo usuário'
+              : 'Editar usuário'}
+          </h2>
 
-          <input
-            id="user-name"
-            type="text"
-            {...register('name')}
-          />
+          <p>
+            {isCreate
+              ? 'Preencha os dados para cadastrar um novo usuário.'
+              : 'Atualize as informações do usuário selecionado.'}
+          </p>
+        </header>
 
-          {errors.name && (
-            <p>{errors.name.message}</p>
-          )}
-        </div>
+        <div className="modal-body">
+          <form
+            className="modal-form"
+            onSubmit={handleSubmit(
+              submitForm,
+            )}
+          >
+            <div className="modal-field">
+              <label htmlFor="user-name">
+                Nome
+              </label>
 
-        <div>
-          <label htmlFor="user-email">
-            E-mail
-          </label>
+              <input
+                id="user-name"
+                type="text"
+                placeholder="Nome do usuário"
+                {...register('name')}
+              />
 
-          <input
-            id="user-email"
-            type="email"
-            {...register('email')}
-          />
-
-          {errors.email && (
-            <p>{errors.email.message}</p>
-          )}
-        </div>
-
-        {mode === 'create' && (
-          <div>
-            <label htmlFor="user-password">
-              Senha
-            </label>
-
-            <input
-              id="user-password"
-              type="password"
-              {...register('password')}
-            />
-
-            {'password' in errors &&
-              errors.password && (
-                <p>
-                  {errors.password.message}
-                </p>
+              {errors.name && (
+                <span className="modal-field-error">
+                  {errors.name.message}
+                </span>
               )}
-          </div>
-        )}
+            </div>
 
-        <button
-          type="button"
-          onClick={onClose}
-        >
-          Cancelar
-        </button>
+            <div className="modal-field">
+              <label htmlFor="user-email">
+                E-mail
+              </label>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-        >
-          {isSubmitting
-            ? 'Salvando...'
-            : 'Salvar'}
-        </button>
-      </form>
+              <input
+                id="user-email"
+                type="email"
+                placeholder="usuario@email.com"
+                {...register('email')}
+              />
+
+              {errors.email && (
+                <span className="modal-field-error">
+                  {errors.email.message}
+                </span>
+              )}
+            </div>
+
+            {isCreate && (
+              <div className="modal-field">
+                <label htmlFor="user-password">
+                  Senha
+                </label>
+
+                <input
+                  id="user-password"
+                  type="password"
+                  placeholder="Mínimo de 6 caracteres"
+                  {...register('password')}
+                />
+
+                {errors.password && (
+                  <span className="modal-field-error">
+                    {
+                      errors.password
+                        .message
+                    }
+                  </span>
+                )}
+              </div>
+            )}
+
+            <div className="modal-actions">
+              <button
+                className="modal-button modal-button-secondary"
+                type="button"
+                disabled={isSubmitting}
+                onClick={onClose}
+              >
+                Cancelar
+              </button>
+
+              <button
+                className="modal-button modal-button-primary"
+                type="submit"
+                disabled={isSubmitting}
+              >
+                {isSubmitting
+                  ? 'Salvando...'
+                  : isCreate
+                    ? 'Cadastrar'
+                    : 'Salvar alterações'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
     </div>
   )
 }

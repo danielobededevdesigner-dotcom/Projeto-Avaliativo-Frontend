@@ -8,8 +8,13 @@ import type {
   UsersResponse,
 } from '../types/user'
 
-export async function createUser(data: CreateUserData) {
-  const response = await api.post<User>('/users', data)
+export async function createUser(
+  data: CreateUserData,
+) {
+  const response = await api.post<User>(
+    '/users',
+    data,
+  )
 
   return response.data
 }
@@ -18,15 +23,19 @@ export async function getUsers(
   page = 1,
   limit = 5,
 ): Promise<UsersResponse> {
-  const response = await api.get<User[]>('/users', {
-    params: {
-      _page: page,
-      _limit: limit,
+  const response = await api.get<User[]>(
+    '/users',
+    {
+      params: {
+        page,
+        limit,
+      },
     },
-  })
+  )
 
   const total = Number(
-    response.headers['x-total-count'] ?? response.data.length,
+    response.headers['x-total-count'] ??
+      response.data.length,
   )
 
   return {
@@ -37,8 +46,12 @@ export async function getUsers(
   }
 }
 
-export async function getUserById(id: number) {
-  const response = await api.get<User>(`/users/${id}`)
+export async function getUserById(
+  id: number,
+) {
+  const response = await api.get<User>(
+    `/users/${id}`,
+  )
 
   return response.data
 }
@@ -55,7 +68,9 @@ export async function updateUser(
   return response.data
 }
 
-export async function deleteUser(id: number) {
+export async function deleteUser(
+  id: number,
+) {
   await api.delete(`/users/${id}`)
 }
 

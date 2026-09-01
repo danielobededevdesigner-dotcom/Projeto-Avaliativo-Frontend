@@ -11,9 +11,11 @@ import { DeleteUserModal } from '../components/DeleteUserModal'
 import { UserDetailsModal } from '../components/UserDetailsModal'
 import { UserFormModal } from '../components/UserFormModal'
 import { useAuth } from '../hooks/useAuth'
+
 import {
   createUser,
   deleteUser,
+  getUserById,
   getUsers,
   updateUser,
 } from '../services/userService'
@@ -24,7 +26,10 @@ import type {
   User,
 } from '../types/user'
 
+import '../styles/dashboard.css'
+
 const ITEMS_PER_PAGE = 5
+const ADMIN_USER_ID = 1
 
 function getApiErrorMessage(
   error: unknown,
@@ -40,17 +45,31 @@ function getApiErrorMessage(
   return fallbackMessage
 }
 
+function getInitials(name: string) {
+  return name
+    .trim()
+    .split(' ')
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase()
+}
+
 export function HomePage() {
   const { userId, logout } = useAuth()
   const queryClient = useQueryClient()
 
   const [page, setPage] = useState(1)
 
-  const [selectedUserId, setSelectedUserId] =
-    useState<number | null>(null)
+  const [
+    selectedUserId,
+    setSelectedUserId,
+  ] = useState<number | null>(null)
 
-  const [isCreateModalOpen, setIsCreateModalOpen] =
-    useState(false)
+  const [
+    isCreateModalOpen,
+    setIsCreateModalOpen,
+  ] = useState(false)
 
   const [
     isChangePasswordModalOpen,
@@ -72,6 +91,24 @@ export function HomePage() {
   const [deleteError, setDeleteError] =
     useState('')
 
+  /*
+   * Usuário atualmente conectado.
+   */
+  const {
+    data: currentUser,
+    isLoading: isCurrentUserLoading,
+  } = useQuery({
+    queryKey: ['user', userId],
+
+    queryFn: () =>
+      getUserById(userId as number),
+
+    enabled: userId !== null,
+  })
+
+  /*
+   * Lista paginada de usuários.
+   */
   const {
     data,
     isLoading,
@@ -83,10 +120,17 @@ export function HomePage() {
       page,
       ITEMS_PER_PAGE,
     ],
+
     queryFn: () =>
-      getUsers(page, ITEMS_PER_PAGE),
+      getUsers(
+        page,
+        ITEMS_PER_PAGE,
+      ),
   })
 
+  /*
+   * Criar usuário.
+   */
   const createUserMutation = useMutation({
     mutationFn: createUser,
 
@@ -109,6 +153,9 @@ export function HomePage() {
     },
   })
 
+  /*
+   * Atualizar usuário.
+   */
   const updateUserMutation = useMutation({
     mutationFn: ({
       id,
@@ -126,6 +173,13 @@ export function HomePage() {
         queryKey: ['users'],
       })
 
+      /*
+       * Atualiza também os dados individuais.
+       *
+       * Isso garante que, se o usuário editar
+       * a própria conta, nome e e-mail sejam
+       * atualizados no cabeçalho.
+       */
       await queryClient.invalidateQueries({
         queryKey: ['user'],
       })
@@ -141,6 +195,9 @@ export function HomePage() {
     },
   })
 
+  /*
+   * Excluir usuário.
+   */
   const deleteUserMutation = useMutation({
     mutationFn: deleteUser,
 
@@ -148,6 +205,11 @@ export function HomePage() {
       setDeleteError('')
       setDeletingUser(null)
 
+      /*
+       * Se o usuário removido era o único
+       * registro da página atual, voltamos
+       * automaticamente uma página.
+       */
       const isLastItemOnPage =
         data?.users.length === 1 &&
         page > 1
@@ -182,161 +244,476 @@ export function HomePage() {
     ),
   )
 
+  const currentUserName =
+    currentUser?.name ??
+    (userId !== null
+      ? `ID #${userId}`
+      : 'Usuário')
+
+  const currentUserInitials =
+    currentUser?.name
+      ? getInitials(currentUser.name)
+      : 'U'
+
   return (
-    <main>
-      <header>
-        <h1>Usuários</h1>
+    <main className="dashboard-page">
+      <header className="dashboard-topbar">
+        <div className="dashboard-brand">
+          <div className="dashboard-logo">
+            U
+          </div>
 
-        <p>
-          Usuário autenticado: ID {userId}
-        </p>
+          <div>
+            <strong>UserFlow</strong>
 
-        <button
-          type="button"
-          onClick={() => {
-            setCreateError('')
-            setIsCreateModalOpen(true)
-          }}
-        >
-          Novo usuário
-        </button>
+            <span>
+              Gestão de usuários
+            </span>
+          </div>
+        </div>
 
-        {userId !== null && (
-          <button
-            type="button"
-            onClick={() =>
-              setIsChangePasswordModalOpen(
-                true,
-              )
-            }
-          >
-            Alterar minha senha
-          </button>
-        )}
+        <details className="account-dropdown">
+          <summary className="account-trigger">
+            <div className="account-avatar">
+              {currentUserInitials}
+            </div>
 
-        <button
-          type="button"
-          onClick={logout}
-        >
-          Sair
-        </button>
+            <div className="account-trigger-info">
+              <span>
+                Minha conta
+              </span>
+
+              <strong>
+                {isCurrentUserLoading
+                  ? 'Carregando...'
+                  : currentUserName}
+              </strong>
+
+              {currentUser?.email && (
+                <small>
+                  {currentUser.email}
+                </small>
+              )}
+            </div>
+
+            <span className="account-chevron">
+              ▾
+            </span>
+          </summary>
+
+          <div className="account-menu">
+            <div className="account-menu-header">
+              <span>
+                Usuário conectado
+              </span>
+
+              <strong>
+                {isCurrentUserLoading
+                  ? 'Carregando...'
+                  : currentUserName}
+              </strong>
+
+              {currentUser?.email && (
+                <small>
+                  {currentUser.email}
+                </small>
+              )}
+
+              {userId !== null && (
+                <div className="account-menu-user-id">
+                  ID #{userId}
+                </div>
+              )}
+            </div>
+
+            <div className="account-menu-divider" />
+
+            <button
+              className="account-menu-item"
+              type="button"
+              onClick={() =>
+                setIsChangePasswordModalOpen(
+                  true,
+                )
+              }
+            >
+              <span className="account-menu-icon">
+                🔒
+              </span>
+
+              <div>
+                <strong>
+                  Alterar senha
+                </strong>
+
+                <small>
+                  Atualize sua senha de acesso
+                </small>
+              </div>
+            </button>
+
+            <div className="account-menu-divider" />
+
+            <button
+              className="account-menu-item account-menu-logout"
+              type="button"
+              onClick={logout}
+            >
+              <span className="account-menu-icon">
+                ↪
+              </span>
+
+              <div>
+                <strong>
+                  Sair
+                </strong>
+
+                <small>
+                  Encerrar sessão
+                </small>
+              </div>
+            </button>
+          </div>
+        </details>
       </header>
 
-      {isLoading && (
-        <p>Carregando usuários...</p>
-      )}
+      <section className="dashboard-content">
+        <div className="dashboard-heading">
+          <div>
+            <span className="dashboard-eyebrow">
+              Painel de usuários
+            </span>
 
-      {isError && (
-        <div>
-          <p>
-            Não foi possível carregar os
-            usuários.
-          </p>
+            <h1>
+              Usuários
+            </h1>
+
+            <p>
+              Visualize e gerencie os
+              usuários cadastrados no
+              sistema.
+            </p>
+          </div>
 
           <button
+            className="button button-primary"
             type="button"
-            onClick={() => refetch()}
+            onClick={() => {
+              setCreateError('')
+              setIsCreateModalOpen(true)
+            }}
           >
-            Tentar novamente
+            <span className="button-plus">
+              +
+            </span>
+
+            Novo usuário
           </button>
         </div>
-      )}
 
-      {!isLoading &&
-        !isError &&
-        data?.users.length === 0 && (
-          <p>
-            Nenhum usuário encontrado.
-          </p>
-        )}
+        <section className="dashboard-stats">
+          <article className="stat-card">
+            <span className="stat-label">
+              Total de usuários
+            </span>
 
-      {!isLoading &&
-        !isError &&
-        data &&
-        data.users.length > 0 && (
-          <>
+            <strong>
+              {data?.total ?? 0}
+            </strong>
+
+            <small>
+              cadastrados no sistema
+            </small>
+          </article>
+
+          <article className="stat-card">
+            <span className="stat-label">
+              Página atual
+            </span>
+
+            <strong>
+              {page}
+            </strong>
+
+            <small>
+              de {totalPages} página(s)
+            </small>
+          </article>
+
+          <article className="stat-card">
+            <span className="stat-label">
+              Exibindo
+            </span>
+
+            <strong>
+              {data?.users.length ?? 0}
+            </strong>
+
+            <small>
+              usuários nesta página
+            </small>
+          </article>
+        </section>
+
+        <section className="users-panel">
+          <div className="users-panel-header">
             <div>
-              {data.users.map((user) => (
-                <div key={user.id}>
-                  <h2>{user.name}</h2>
+              <h2>
+                Lista de usuários
+              </h2>
 
-                  <p>{user.email}</p>
+              <p>
+                Gerencie informações,
+                visualize detalhes ou
+                remova registros.
+              </p>
+            </div>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setSelectedUserId(
-                        user.id,
+            <span className="users-count">
+              {data?.total ?? 0}{' '}
+              usuário(s)
+            </span>
+          </div>
+
+          {isLoading && (
+            <div className="state-box">
+              <div className="loading-spinner" />
+
+              <p>
+                Carregando usuários...
+              </p>
+            </div>
+          )}
+
+          {isError && (
+            <div className="state-box">
+              <strong>
+                Não foi possível carregar
+                os usuários.
+              </strong>
+
+              <p>
+                Verifique sua conexão e
+                tente novamente.
+              </p>
+
+              <button
+                className="button button-primary"
+                type="button"
+                onClick={() =>
+                  refetch()
+                }
+              >
+                Tentar novamente
+              </button>
+            </div>
+          )}
+
+          {!isLoading &&
+            !isError &&
+            data?.users.length === 0 && (
+              <div className="state-box">
+                <strong>
+                  Nenhum usuário encontrado.
+                </strong>
+
+                <p>
+                  Crie o primeiro usuário
+                  para começar.
+                </p>
+              </div>
+            )}
+
+          {!isLoading &&
+            !isError &&
+            data &&
+            data.users.length > 0 && (
+              <>
+                <div className="users-list">
+                  {data.users.map(
+                    (user) => {
+                      /*
+                       * CONTA ADMIN PROTEGIDA
+                       *
+                       * ID #1 = conta principal.
+                       *
+                       * - O próprio Admin pode
+                       *   editar a sua conta.
+                       *
+                       * - Outros usuários não
+                       *   podem editar o Admin.
+                       *
+                       * - Ninguém pode excluir
+                       *   a conta Admin.
+                       */
+
+                      const isAdminAccount =
+                        user.id ===
+                        ADMIN_USER_ID
+
+                      const isLoggedAdmin =
+                        userId ===
+                        ADMIN_USER_ID
+
+                      const canEditUser =
+                        !isAdminAccount ||
+                        isLoggedAdmin
+
+                      const canDeleteUser =
+                        !isAdminAccount
+
+                      return (
+                        <article
+                          className="user-card"
+                          key={user.id}
+                        >
+                          <div className="user-main">
+                            <div className="user-avatar">
+                              {getInitials(
+                                user.name,
+                              )}
+                            </div>
+
+                            <div className="user-info">
+                              <div className="user-name-row">
+                                <h3>
+                                  {user.name}
+                                </h3>
+
+                                {user.id ===
+                                  userId && (
+                                  <span className="current-user-badge">
+                                    Você
+                                  </span>
+                                )}
+                              </div>
+
+                              <p>
+                                {user.email}
+                              </p>
+
+                              <span className="user-id">
+                                ID #{user.id}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="user-card-actions">
+                            <button
+                              className="action-button"
+                              type="button"
+                              onClick={() =>
+                                setSelectedUserId(
+                                  user.id,
+                                )
+                              }
+                            >
+                              Detalhes
+                            </button>
+
+                            {canEditUser && (
+                              <button
+                                className="action-button action-edit"
+                                type="button"
+                                onClick={() => {
+                                  setEditError(
+                                    '',
+                                  )
+
+                                  setEditingUser(
+                                    user,
+                                  )
+                                }}
+                              >
+                                Editar
+                              </button>
+                            )}
+
+                            {canDeleteUser && (
+                              <button
+                                className="action-button action-delete"
+                                type="button"
+                                onClick={() => {
+                                  setDeleteError(
+                                    '',
+                                  )
+
+                                  setDeletingUser(
+                                    user,
+                                  )
+                                }}
+                              >
+                                Excluir
+                              </button>
+                            )}
+                          </div>
+                        </article>
                       )
-                    }
-                  >
-                    Ver detalhes
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditError('')
-                      setEditingUser(user)
-                    }}
-                  >
-                    Editar
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDeleteError('')
-                      setDeletingUser(user)
-                    }}
-                  >
-                    Excluir
-                  </button>
+                    },
+                  )}
                 </div>
-              ))}
-            </div>
 
-            <div>
-              <p>
-                Total de usuários:{' '}
-                {data.total}
-              </p>
+                <div className="pagination">
+                  <div className="pagination-info">
+                    Página{' '}
+                    <strong>
+                      {page}
+                    </strong>{' '}
+                    de{' '}
+                    <strong>
+                      {totalPages}
+                    </strong>
+                  </div>
 
-              <p>
-                Página {page} de{' '}
-                {totalPages}
-              </p>
+                  <div className="pagination-buttons">
+                    <button
+                      className="pagination-button"
+                      type="button"
+                      disabled={
+                        page === 1
+                      }
+                      onClick={() =>
+                        setPage(
+                          (
+                            currentPage,
+                          ) =>
+                            currentPage -
+                            1,
+                        )
+                      }
+                    >
+                      ← Anterior
+                    </button>
 
-              <button
-                type="button"
-                disabled={page === 1}
-                onClick={() =>
-                  setPage(
-                    (currentPage) =>
-                      currentPage - 1,
-                  )
-                }
-              >
-                Anterior
-              </button>
+                    <span className="pagination-current">
+                      {page}
+                    </span>
 
-              <button
-                type="button"
-                disabled={
-                  page >= totalPages
-                }
-                onClick={() =>
-                  setPage(
-                    (currentPage) =>
-                      currentPage + 1,
-                  )
-                }
-              >
-                Próxima
-              </button>
-            </div>
-          </>
-        )}
+                    <button
+                      className="pagination-button"
+                      type="button"
+                      disabled={
+                        page >=
+                        totalPages
+                      }
+                      onClick={() =>
+                        setPage(
+                          (
+                            currentPage,
+                          ) =>
+                            currentPage +
+                            1,
+                        )
+                      }
+                    >
+                      Próxima →
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+        </section>
+      </section>
 
       {selectedUserId !== null && (
         <UserDetailsModal
@@ -350,7 +727,9 @@ export function HomePage() {
       {isCreateModalOpen && (
         <div>
           {createError && (
-            <p>{createError}</p>
+            <p className="page-error">
+              {createError}
+            </p>
           )}
 
           <UserFormModal
@@ -378,7 +757,9 @@ export function HomePage() {
       {editingUser && (
         <div>
           {editError && (
-            <p>{editError}</p>
+            <p className="page-error">
+              {editError}
+            </p>
           )}
 
           <UserFormModal
@@ -399,6 +780,7 @@ export function HomePage() {
               await updateUserMutation.mutateAsync(
                 {
                   id: editingUser.id,
+
                   data:
                     formData as UpdateUserData,
                 },
