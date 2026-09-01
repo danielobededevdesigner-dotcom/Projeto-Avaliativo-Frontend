@@ -1,7 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link, useNavigate } from 'react-router-dom'
+import {
+  Link,
+  useNavigate,
+} from 'react-router-dom'
 
 import { useAuth } from '../hooks/useAuth'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
@@ -19,11 +22,19 @@ export function LoginPage() {
   useDocumentTitle('Login')
 
   const navigate = useNavigate()
-  const { login } = useAuth()
 
-  const [error, setError] = useState('')
-  const [showPassword, setShowPassword] =
-    useState(false)
+  const {
+    login,
+    sessionExpired,
+  } = useAuth()
+
+  const [error, setError] =
+    useState('')
+
+  const [
+    showPassword,
+    setShowPassword,
+  ] = useState(false)
 
   const {
     register,
@@ -33,7 +44,9 @@ export function LoginPage() {
       isSubmitting,
     },
   } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(
+      loginSchema,
+    ),
   })
 
   async function onSubmit(
@@ -46,6 +59,7 @@ export function LoginPage() {
         await loginRequest(data)
 
       login(response.token)
+
       navigate('/')
     } catch {
       setError(
@@ -92,7 +106,9 @@ export function LoginPage() {
               UserFlow
             </span>
 
-            <h2>Bem-vindo de volta</h2>
+            <h2>
+              Bem-vindo de volta
+            </h2>
 
             <p>
               Entre com seus dados para
@@ -100,9 +116,28 @@ export function LoginPage() {
             </p>
           </div>
 
+          {sessionExpired && (
+            <div
+              className="auth-session-message"
+              role="status"
+              aria-live="polite"
+            >
+              <strong>
+                Sua sessão expirou.
+              </strong>
+
+              <span>
+                Entre novamente para
+                continuar.
+              </span>
+            </div>
+          )}
+
           <form
             className="auth-form"
-            onSubmit={handleSubmit(onSubmit)}
+            onSubmit={handleSubmit(
+              onSubmit,
+            )}
           >
             <div className="form-group">
               <label htmlFor="email">
@@ -114,6 +149,7 @@ export function LoginPage() {
                 type="email"
                 placeholder="seu@email.com"
                 autoComplete="email"
+                autoFocus
                 {...register('email')}
               />
 
@@ -139,12 +175,22 @@ export function LoginPage() {
                   }
                   placeholder="Digite sua senha"
                   autoComplete="current-password"
-                  {...register('password')}
+                  {...register(
+                    'password',
+                  )}
                 />
 
                 <button
                   className="password-toggle"
                   type="button"
+                  aria-label={
+                    showPassword
+                      ? 'Ocultar senha'
+                      : 'Mostrar senha'
+                  }
+                  aria-pressed={
+                    showPassword
+                  }
                   onClick={() =>
                     setShowPassword(
                       (current) =>
@@ -169,7 +215,10 @@ export function LoginPage() {
 
               {errors.password && (
                 <span className="field-error">
-                  {errors.password.message}
+                  {
+                    errors.password
+                      .message
+                  }
                 </span>
               )}
             </div>

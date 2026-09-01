@@ -12,6 +12,7 @@ import { Toast } from '../components/Toast'
 import { UserDetailsModal } from '../components/UserDetailsModal'
 import { UserFormModal } from '../components/UserFormModal'
 import { useAuth } from '../hooks/useAuth'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
 import {
   createUser,
@@ -57,6 +58,8 @@ function getInitials(name: string) {
 }
 
 export function HomePage() {
+  useDocumentTitle('Usuários')
+
   const { userId, logout } = useAuth()
   const queryClient = useQueryClient()
 

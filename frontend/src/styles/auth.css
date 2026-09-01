@@ -1202,3 +1202,37 @@
     transition: none;
   }
 }
+
+.auth-session-message {
+  display: flex;
+  flex-direction: column;
+
+  gap: 3px;
+
+  margin-bottom: 18px;
+
+  padding: 13px 15px;
+
+  border:
+    1px solid
+    rgba(59, 130, 246, 0.22);
+
+  border-radius: 10px;
+
+  background:
+    rgba(239, 246, 255, 0.9);
+
+  color: #1e40af;
+
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.auth-session-message strong {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.auth-session-message span {
+  color: #3b5998;
+}

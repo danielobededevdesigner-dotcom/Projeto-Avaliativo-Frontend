@@ -8,6 +8,7 @@ import {
 } from 'react'
 
 import { setUnauthorizedHandler } from '../services/api'
+
 import {
   getToken,
   getUserIdFromToken,
@@ -20,61 +21,145 @@ type AuthContextData = {
   token: string | null
   userId: number | null
   isAuthenticated: boolean
+  sessionExpired: boolean
   login: (token: string) => void
   logout: () => void
 }
 
-export const AuthContext = createContext<AuthContextData | undefined>(
-  undefined,
-)
+type AuthState = {
+  token: string | null
+  sessionExpired: boolean
+}
+
+export const AuthContext =
+  createContext<
+    AuthContextData | undefined
+  >(undefined)
 
 type AuthProviderProps = {
   children: ReactNode
 }
 
-export function AuthProvider({ children }: AuthProviderProps) {
-  const [token, setToken] = useState<string | null>(() => {
-    const storedToken = getToken()
+function getInitialAuthState(): AuthState {
+  const storedToken = getToken()
 
-    if (!storedToken) {
-      return null
+  if (!storedToken) {
+    return {
+      token: null,
+      sessionExpired: false,
     }
+  }
 
-    if (isTokenExpired(storedToken)) {
-      removeToken()
-      return null
+  /*
+   * Se o usuário abrir novamente o sistema
+   * com um token que já expirou, removemos
+   * o token e avisamos o Login.
+   */
+  if (isTokenExpired(storedToken)) {
+    removeToken()
+
+    return {
+      token: null,
+      sessionExpired: true,
     }
+  }
 
-    return storedToken
-  })
+  return {
+    token: storedToken,
+    sessionExpired: false,
+  }
+}
 
-  const login = useCallback((newToken: string) => {
-    saveToken(newToken)
-    setToken(newToken)
-  }, [])
+export function AuthProvider({
+  children,
+}: AuthProviderProps) {
+  const [
+    authState,
+    setAuthState,
+  ] = useState<AuthState>(
+    getInitialAuthState,
+  )
 
+  const login = useCallback(
+    (newToken: string) => {
+      saveToken(newToken)
+
+      setAuthState({
+        token: newToken,
+        sessionExpired: false,
+      })
+    },
+    [],
+  )
+
+  /*
+   * Logout realizado pelo próprio usuário.
+   *
+   * Não exibimos mensagem de sessão
+   * expirada nesse caso.
+   */
   const logout = useCallback(() => {
     removeToken()
-    setToken(null)
+
+    setAuthState({
+      token: null,
+      sessionExpired: false,
+    })
   }, [])
 
+  /*
+   * Logout causado por token inválido
+   * ou expirado.
+   */
+  const expireSession =
+    useCallback(() => {
+      removeToken()
+
+      setAuthState({
+        token: null,
+        sessionExpired: true,
+      })
+    }, [])
+
+  /*
+   * O Axios chama expireSession quando
+   * uma requisição autenticada recebe 401.
+   */
   useEffect(() => {
-    setUnauthorizedHandler(logout)
-  }, [logout])
+    setUnauthorizedHandler(
+      expireSession,
+    )
+  }, [expireSession])
 
   const value = useMemo(
     () => ({
-      token,
-      userId: token ? getUserIdFromToken() : null,
-      isAuthenticated: Boolean(token),
+      token: authState.token,
+
+      userId: authState.token
+        ? getUserIdFromToken()
+        : null,
+
+      isAuthenticated: Boolean(
+        authState.token,
+      ),
+
+      sessionExpired:
+        authState.sessionExpired,
+
       login,
       logout,
     }),
-    [token, login, logout],
+    [
+      authState,
+      login,
+      logout,
+    ],
   )
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider
+      value={value}
+    >
       {children}
     </AuthContext.Provider>
   )
