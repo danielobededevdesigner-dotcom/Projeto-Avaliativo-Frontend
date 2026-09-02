@@ -1,50 +1,32 @@
 # UserFlow
 
-Frontend desenvolvido para uma avaliação técnica utilizando **React + TypeScript**, com integração a um backend simulado em JSON Server.
+Frontend desenvolvido para uma avaliação técnica utilizando **React + TypeScript**, integrado a um backend simulado com JSON Server.
 
-O projeto implementa autenticação e gerenciamento de usuários com foco em organização, usabilidade e boas práticas.
+A aplicação implementa autenticação e gerenciamento de usuários, com foco em organização do código, usabilidade e boas práticas.
 
 ## Funcionalidades
 
-- Login com JWT
+- Autenticação com JWT
 - Cadastro de usuários
 - Rotas públicas e protegidas
-- Listagem de usuários
-- Paginação sincronizada com a URL
+- Listagem e paginação de usuários
 - Visualização de detalhes
-- Criação de usuários
-- Edição de usuários
-- Exclusão com confirmação
+- Criação, edição e exclusão de usuários
 - Alteração da própria senha
 - Recuperação e redefinição de senha
-- Tratamento de sessão expirada
 - Validação de formulários
+- Tratamento de sessão expirada
 - Feedback de sucesso e erro
-- Skeleton durante carregamento
+- Skeleton de carregamento
 - Página 404 personalizada
 - Interface responsiva
 - Navegação por teclado nos modais
 
 ## Tecnologias
 
-### Frontend
+**Frontend:** React, TypeScript, Vite, React Router DOM, TanStack React Query, Axios, React Hook Form, Zod, JWT Decode e CSS.
 
-- React
-- TypeScript
-- Vite
-- React Router DOM
-- TanStack React Query
-- Axios
-- React Hook Form
-- Zod
-- JWT Decode
-- CSS
-
-### Backend simulado
-
-- Node.js
-- JSON Server
-- JSON Web Token
+**Backend simulado:** Node.js, JSON Server e JSON Web Token.
 
 ## Como executar
 
@@ -57,21 +39,9 @@ cd Projeto-Avaliativo-Frontend
 
 ### 2. Backend
 
-Entre na pasta:
-
 ```bash
 cd backend
-```
-
-Instale as dependências:
-
-```bash
 npm install
-```
-
-Inicie o servidor:
-
-```bash
 npm start
 ```
 
@@ -83,19 +53,22 @@ http://localhost:3001
 
 ### 3. Frontend
 
-Em outro terminal:
+Abra outro terminal e entre na pasta:
 
 ```bash
 cd frontend
-```
-
-Instale as dependências:
-
-```bash
 npm install
 ```
 
-Crie um arquivo `.env` na pasta `frontend`:
+Crie o arquivo `.env` a partir do `.env.example`.
+
+No Windows:
+
+```powershell
+copy .env.example .env
+```
+
+A configuração padrão é:
 
 ```env
 VITE_API_URL=http://localhost:3001
@@ -107,7 +80,7 @@ Depois execute:
 npm run dev
 ```
 
-O endereço local será exibido pelo Vite, normalmente:
+O Vite exibirá o endereço da aplicação, normalmente:
 
 ```text
 http://localhost:5173
@@ -126,35 +99,33 @@ http://localhost:5173
 
 ## Decisões técnicas
 
-A autenticação utiliza **JWT**, armazenado no navegador e enviado automaticamente nas requisições através de um interceptor do Axios.
+A autenticação utiliza **JWT**, enviado automaticamente nas requisições autenticadas através de um interceptor do Axios.
 
-O **TanStack React Query** é utilizado para requisições, cache e atualização dos dados após operações de CRUD.
+O **TanStack React Query** é responsável pelas requisições, cache e atualização da listagem após operações de CRUD.
 
-Os formulários utilizam **React Hook Form + Zod** para validação.
+Os formulários utilizam **React Hook Form + Zod** para gerenciamento e validação dos dados.
 
-A aplicação também trata estados de carregamento, erro, lista vazia e sessão expirada.
+A aplicação trata estados de carregamento, erro, lista vazia e sessão expirada.
 
-Os modais possuem suporte a `Esc`, clique externo e controle de foco para melhorar a navegação por teclado.
+Os modais possuem suporte a `Esc`, clique externo e gerenciamento de foco para melhorar a navegação por teclado.
 
-A paginação é sincronizada com a URL:
+A paginação é sincronizada com a URL, por exemplo:
 
 ```text
 /?page=2
 ```
 
-permitindo manter a página atual mesmo após atualizar o navegador.
+permitindo manter a página selecionada após atualizar o navegador.
 
 ## Backend simulado
 
-O backend é utilizado apenas para simular a API da avaliação.
+O backend é utilizado apenas para simular a API durante a avaliação.
 
-Por isso, algumas implementações não representam práticas de produção, como armazenamento de dados em arquivo JSON e senhas sem hash.
-
-Em uma aplicação real seriam utilizados banco de dados, hash de senhas, variáveis de ambiente no servidor e mecanismos adicionais de segurança.
+Por isso, algumas implementações, como armazenamento em arquivo JSON e senhas sem hash, são adequadas apenas ao ambiente de desenvolvimento e não representam práticas recomendadas para produção.
 
 ## Build
 
-Para gerar uma versão de produção do frontend:
+Para gerar a versão de produção:
 
 ```bash
 cd frontend
