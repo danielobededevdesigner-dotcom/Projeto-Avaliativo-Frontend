@@ -128,11 +128,13 @@ export function ChangePasswordModal({
     !mutation.isPending &&
     !mutation.isSuccess
 
-  const { handleBackdropClick } =
-    useModalClose(
-      onClose,
-      canCloseModal,
-    )
+  const {
+  modalRef,
+  handleBackdropClick,
+} = useModalClose(
+  onClose,
+  canCloseModal,
+)
 
   useEffect(() => {
     if (!mutation.isSuccess) {
@@ -199,11 +201,13 @@ export function ChangePasswordModal({
       }
     >
       <section
-        className="modal-card"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="change-password-title"
-      >
+  ref={modalRef}
+  tabIndex={-1}
+  className="modal-card"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="change-password-title"
+    >
         <header className="modal-header">
           <h2 id="change-password-title">
             Alterar senha

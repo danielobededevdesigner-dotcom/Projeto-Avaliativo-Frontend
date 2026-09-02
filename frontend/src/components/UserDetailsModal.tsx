@@ -24,8 +24,10 @@ export function UserDetailsModal({
   userId,
   onClose,
 }: UserDetailsModalProps) {
-  const { handleBackdropClick } =
-    useModalClose(onClose)
+  const {
+  modalRef,
+  handleBackdropClick,
+} = useModalClose(onClose)
 
   const {
     data: user,
@@ -47,11 +49,13 @@ export function UserDetailsModal({
       }
     >
       <section
-        className="modal-card"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="user-details-title"
-      >
+  ref={modalRef}
+  tabIndex={-1}
+  className="modal-card"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="user-details-title"
+>
         <header className="modal-header">
           <h2 id="user-details-title">
             Detalhes do usuário

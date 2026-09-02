@@ -19,11 +19,13 @@ export function DeleteUserModal({
   onCancel,
   onConfirm,
 }: DeleteUserModalProps) {
-  const { handleBackdropClick } =
-    useModalClose(
-      onCancel,
-      !isDeleting,
-    )
+const {
+  modalRef,
+  handleBackdropClick,
+} = useModalClose(
+  onCancel,
+  !isDeleting,
+)
 
   return (
     <div
@@ -34,11 +36,13 @@ export function DeleteUserModal({
       }
     >
       <section
-        className="modal-card delete-modal-card"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="delete-user-title"
-      >
+  ref={modalRef}
+  tabIndex={-1}
+  className="modal-card delete-modal-card"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="delete-user-title"
+ >
         <div className="modal-body delete-modal-content">
           <div
             className="delete-modal-icon"

@@ -1236,3 +1236,17 @@
 .auth-session-message span {
   color: #3b5998;
 }
+
+.auth-page :is(
+  button,
+  input,
+  a
+):focus-visible,
+.register-auth-page :is(
+  button,
+  input,
+  a
+):focus-visible {
+  outline: 3px solid #60a5fa;
+  outline-offset: 3px;
+}

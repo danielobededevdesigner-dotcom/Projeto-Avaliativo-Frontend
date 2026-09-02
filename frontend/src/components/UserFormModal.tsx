@@ -96,11 +96,13 @@ export function UserFormModal({
    * fica bloqueado para evitar interromper
    * a operação.
    */
-  const { handleBackdropClick } =
-    useModalClose(
-      onClose,
-      !isSubmitting,
-    )
+const {
+  modalRef,
+  handleBackdropClick,
+} = useModalClose(
+  onClose,
+  !isSubmitting,
+)
 
   const [
     showPassword,
@@ -173,11 +175,13 @@ export function UserFormModal({
       }
     >
       <section
-        className="modal-card"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="user-form-title"
-      >
+  ref={modalRef}
+  tabIndex={-1}
+  className="modal-card"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="user-form-title"
+>
         <header className="modal-header">
           <h2 id="user-form-title">
             {isCreate

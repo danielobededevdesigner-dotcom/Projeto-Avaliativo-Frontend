@@ -1,16 +1,22 @@
 import axios from 'axios'
-import { useState } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 import {
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 
 import { ChangePasswordModal } from '../components/ChangePasswordModal'
 import { DeleteUserModal } from '../components/DeleteUserModal'
 import { Toast } from '../components/Toast'
 import { UserDetailsModal } from '../components/UserDetailsModal'
 import { UserFormModal } from '../components/UserFormModal'
+import { UserListSkeleton } from '../components/UserListSkeleton'
 import { useAuth } from '../hooks/useAuth'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
@@ -60,15 +66,69 @@ function getInitials(name: string) {
 export function HomePage() {
   useDocumentTitle('Usuários')
 
-  const { userId, logout } = useAuth()
-  const queryClient = useQueryClient()
+  const accountDropdownRef =
+    useRef<HTMLDetailsElement>(null)
 
-  const [page, setPage] = useState(1)
+  const { userId, logout } = useAuth()
+
+  const queryClient =
+    useQueryClient()
+
+  const [
+    searchParams,
+    setSearchParams,
+  ] = useSearchParams()
+
+  /*
+   * A página atual é obtida
+   * diretamente da URL.
+   *
+   * /         -> página 1
+   * /?page=2 -> página 2
+   */
+  const rawPageParam =
+    searchParams.get('page')
+
+  const parsedPage = Number(
+    rawPageParam ?? '1',
+  )
+
+  const page =
+    Number.isInteger(parsedPage) &&
+    parsedPage > 0
+      ? parsedPage
+      : 1
+
+  /*
+   * Atualiza a página na URL.
+   *
+   * A primeira página utiliza "/".
+   */
+  function goToPage(
+    newPage: number,
+  ) {
+    const safePage = Math.max(
+      1,
+      newPage,
+    )
+
+    if (safePage === 1) {
+      setSearchParams({})
+
+      return
+    }
+
+    setSearchParams({
+      page: String(safePage),
+    })
+  }
 
   const [
     selectedUserId,
     setSelectedUserId,
-  ] = useState<number | null>(null)
+  ] = useState<number | null>(
+    null,
+  )
 
   const [
     isCreateModalOpen,
@@ -80,20 +140,30 @@ export function HomePage() {
     setIsChangePasswordModalOpen,
   ] = useState(false)
 
-  const [editingUser, setEditingUser] =
-    useState<User | null>(null)
+  const [
+    editingUser,
+    setEditingUser,
+  ] = useState<User | null>(null)
 
-  const [deletingUser, setDeletingUser] =
-    useState<User | null>(null)
+  const [
+    deletingUser,
+    setDeletingUser,
+  ] = useState<User | null>(null)
 
-  const [createError, setCreateError] =
-    useState('')
+  const [
+    createError,
+    setCreateError,
+  ] = useState('')
 
-  const [editError, setEditError] =
-    useState('')
+  const [
+    editError,
+    setEditError,
+  ] = useState('')
 
-  const [deleteError, setDeleteError] =
-    useState('')
+  const [
+    deleteError,
+    setDeleteError,
+  ] = useState('')
 
   const [
     successMessage,
@@ -101,16 +171,108 @@ export function HomePage() {
   ] = useState('')
 
   /*
+   * MENU MINHA CONTA
+   *
+   * Fecha o dropdown quando:
+   *
+   * - o usuário clicar fora;
+   * - pressionar Esc.
+   *
+   * Ao fechar com Esc, o foco
+   * retorna para "Minha conta".
+   */
+  useEffect(() => {
+    function handlePointerDown(
+      event: PointerEvent,
+    ) {
+      const dropdown =
+        accountDropdownRef.current
+
+      if (
+        !dropdown ||
+        !dropdown.open
+      ) {
+        return
+      }
+
+      if (
+        event.target instanceof Node &&
+        !dropdown.contains(
+          event.target,
+        )
+      ) {
+        dropdown.open = false
+      }
+    }
+
+    function handleKeyDown(
+      event: KeyboardEvent,
+    ) {
+      if (event.key !== 'Escape') {
+        return
+      }
+
+      const dropdown =
+        accountDropdownRef.current
+
+      if (
+        !dropdown ||
+        !dropdown.open
+      ) {
+        return
+      }
+
+      event.preventDefault()
+
+      dropdown.open = false
+
+      dropdown
+        .querySelector<HTMLElement>(
+          'summary',
+        )
+        ?.focus()
+    }
+
+    document.addEventListener(
+      'pointerdown',
+      handlePointerDown,
+    )
+
+    document.addEventListener(
+      'keydown',
+      handleKeyDown,
+    )
+
+    return () => {
+      document.removeEventListener(
+        'pointerdown',
+        handlePointerDown,
+      )
+
+      document.removeEventListener(
+        'keydown',
+        handleKeyDown,
+      )
+    }
+  }, [])
+
+  /*
    * Usuário atualmente conectado.
    */
   const {
     data: currentUser,
-    isLoading: isCurrentUserLoading,
+    isLoading:
+      isCurrentUserLoading,
   } = useQuery({
-    queryKey: ['user', userId],
+    queryKey: [
+      'user',
+      userId,
+    ],
 
     queryFn: () =>
-      getUserById(userId as number),
+      getUserById(
+        userId as number,
+      ),
 
     enabled: userId !== null,
   })
@@ -140,130 +302,216 @@ export function HomePage() {
   /*
    * Criar usuário.
    */
-  const createUserMutation = useMutation({
-    mutationFn: createUser,
+  const createUserMutation =
+    useMutation({
+      mutationFn: createUser,
 
-    onSuccess: async () => {
-      setCreateError('')
-      setIsCreateModalOpen(false)
+      onSuccess: async () => {
+        setCreateError('')
 
-      setSuccessMessage(
-        'Usuário criado com sucesso.',
-      )
+        setIsCreateModalOpen(
+          false,
+        )
 
-      await queryClient.invalidateQueries({
-        queryKey: ['users'],
-      })
-    },
+        setSuccessMessage(
+          'Usuário criado com sucesso.',
+        )
 
-    onError: (error) => {
-      setCreateError(
-        getApiErrorMessage(
-          error,
-          'Não foi possível criar o usuário.',
-        ),
-      )
-    },
-  })
+        await queryClient.invalidateQueries(
+          {
+            queryKey: [
+              'users',
+            ],
+          },
+        )
+      },
+
+      onError: (error) => {
+        setCreateError(
+          getApiErrorMessage(
+            error,
+            'Não foi possível criar o usuário.',
+          ),
+        )
+      },
+    })
 
   /*
    * Atualizar usuário.
    */
-  const updateUserMutation = useMutation({
-    mutationFn: ({
-      id,
-      data,
-    }: {
-      id: number
-      data: UpdateUserData
-    }) => updateUser(id, data),
-
-    onSuccess: async () => {
-      setEditError('')
-      setEditingUser(null)
-
-      setSuccessMessage(
-        'Usuário atualizado com sucesso.',
-      )
-
-      await queryClient.invalidateQueries({
-        queryKey: ['users'],
-      })
-
-      /*
-       * Atualiza também os dados individuais.
-       *
-       * Isso garante que, se o usuário editar
-       * a própria conta, nome e e-mail sejam
-       * atualizados no cabeçalho.
-       */
-      await queryClient.invalidateQueries({
-        queryKey: ['user'],
-      })
-    },
-
-    onError: (error) => {
-      setEditError(
-        getApiErrorMessage(
-          error,
-          'Não foi possível atualizar o usuário.',
+  const updateUserMutation =
+    useMutation({
+      mutationFn: ({
+        id,
+        data,
+      }: {
+        id: number
+        data: UpdateUserData
+      }) =>
+        updateUser(
+          id,
+          data,
         ),
-      )
-    },
-  })
+
+      onSuccess: async () => {
+        setEditError('')
+        setEditingUser(null)
+
+        setSuccessMessage(
+          'Usuário atualizado com sucesso.',
+        )
+
+        await queryClient.invalidateQueries(
+          {
+            queryKey: [
+              'users',
+            ],
+          },
+        )
+
+        /*
+         * Atualiza também dados
+         * individuais.
+         */
+        await queryClient.invalidateQueries(
+          {
+            queryKey: [
+              'user',
+            ],
+          },
+        )
+      },
+
+      onError: (error) => {
+        setEditError(
+          getApiErrorMessage(
+            error,
+            'Não foi possível atualizar o usuário.',
+          ),
+        )
+      },
+    })
 
   /*
    * Excluir usuário.
    */
-  const deleteUserMutation = useMutation({
-    mutationFn: deleteUser,
+  const deleteUserMutation =
+    useMutation({
+      mutationFn: deleteUser,
 
-    onSuccess: async () => {
-      setDeleteError('')
-      setDeletingUser(null)
+      onSuccess: async () => {
+        setDeleteError('')
+        setDeletingUser(null)
 
-      setSuccessMessage(
-        'Usuário excluído com sucesso.',
-      )
-
-      /*
-       * Se o usuário removido era o único
-       * registro da página atual, voltamos
-       * automaticamente uma página.
-       */
-      const isLastItemOnPage =
-        data?.users.length === 1 &&
-        page > 1
-
-      if (isLastItemOnPage) {
-        setPage(
-          (currentPage) =>
-            currentPage - 1,
+        setSuccessMessage(
+          'Usuário excluído com sucesso.',
         )
-      }
 
-      await queryClient.invalidateQueries({
-        queryKey: ['users'],
-      })
-    },
+        /*
+         * Se era o único usuário
+         * da página atual, volta
+         * automaticamente uma página.
+         */
+        const isLastItemOnPage =
+          data?.users.length ===
+            1 &&
+          page > 1
 
-    onError: (error) => {
-      setDeleteError(
-        getApiErrorMessage(
-          error,
-          'Não foi possível excluir o usuário.',
-        ),
+        if (
+          isLastItemOnPage
+        ) {
+          goToPage(
+            page - 1,
+          )
+        }
+
+        await queryClient.invalidateQueries(
+          {
+            queryKey: [
+              'users',
+            ],
+          },
+        )
+      },
+
+      onError: (error) => {
+        setDeleteError(
+          getApiErrorMessage(
+            error,
+            'Não foi possível excluir o usuário.',
+          ),
+        )
+      },
+    })
+
+  const totalPages =
+    Math.max(
+      1,
+      Math.ceil(
+        (data?.total ?? 0) /
+          ITEMS_PER_PAGE,
+      ),
+    )
+
+  /*
+   * Corrige parâmetros inválidos:
+   *
+   * ?page=abc
+   * ?page=0
+   * ?page=-2
+   * ?page=1
+   *
+   * Todos voltam para "/".
+   */
+  useEffect(() => {
+    if (
+      rawPageParam !== null &&
+      page === 1
+    ) {
+      setSearchParams(
+        {},
+        {
+          replace: true,
+        },
       )
-    },
-  })
+    }
+  }, [
+    rawPageParam,
+    page,
+    setSearchParams,
+  ])
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(
-      (data?.total ?? 0) /
-        ITEMS_PER_PAGE,
-    ),
-  )
+  /*
+   * Se a página solicitada for
+   * maior que a quantidade existente,
+   * redireciona para a última válida.
+   */
+  useEffect(() => {
+    if (
+      !isLoading &&
+      data &&
+      page > totalPages
+    ) {
+      setSearchParams(
+        totalPages === 1
+          ? {}
+          : {
+              page: String(
+                totalPages,
+              ),
+            },
+        {
+          replace: true,
+        },
+      )
+    }
+  }, [
+    data,
+    isLoading,
+    page,
+    totalPages,
+    setSearchParams,
+  ])
 
   const currentUserName =
     currentUser?.name ??
@@ -273,7 +521,9 @@ export function HomePage() {
 
   const currentUserInitials =
     currentUser?.name
-      ? getInitials(currentUser.name)
+      ? getInitials(
+          currentUser.name,
+        )
       : 'U'
 
   return (
@@ -285,7 +535,9 @@ export function HomePage() {
           </div>
 
           <div>
-            <strong>UserFlow</strong>
+            <strong>
+              UserFlow
+            </strong>
 
             <span>
               Gestão de usuários
@@ -293,10 +545,15 @@ export function HomePage() {
           </div>
         </div>
 
-        <details className="account-dropdown">
+        <details
+          ref={accountDropdownRef}
+          className="account-dropdown"
+        >
           <summary className="account-trigger">
             <div className="account-avatar">
-              {currentUserInitials}
+              {
+                currentUserInitials
+              }
             </div>
 
             <div className="account-trigger-info">
@@ -312,12 +569,17 @@ export function HomePage() {
 
               {currentUser?.email && (
                 <small>
-                  {currentUser.email}
+                  {
+                    currentUser.email
+                  }
                 </small>
               )}
             </div>
 
-            <span className="account-chevron">
+            <span
+              className="account-chevron"
+              aria-hidden="true"
+            >
               ▾
             </span>
           </summary>
@@ -336,7 +598,9 @@ export function HomePage() {
 
               {currentUser?.email && (
                 <small>
-                  {currentUser.email}
+                  {
+                    currentUser.email
+                  }
                 </small>
               )}
 
@@ -352,13 +616,27 @@ export function HomePage() {
             <button
               className="account-menu-item"
               type="button"
-              onClick={() =>
+              onClick={() => {
+                /*
+                 * Fecha o dropdown antes
+                 * de abrir o modal.
+                 */
+                if (
+                  accountDropdownRef.current
+                ) {
+                  accountDropdownRef.current.open =
+                    false
+                }
+
                 setIsChangePasswordModalOpen(
                   true,
                 )
-              }
+              }}
             >
-              <span className="account-menu-icon">
+              <span
+                className="account-menu-icon"
+                aria-hidden="true"
+              >
                 🔒
               </span>
 
@@ -378,9 +656,25 @@ export function HomePage() {
             <button
               className="account-menu-item account-menu-logout"
               type="button"
-              onClick={logout}
+              onClick={() => {
+                /*
+                 * Fecha o menu antes
+                 * de encerrar a sessão.
+                 */
+                if (
+                  accountDropdownRef.current
+                ) {
+                  accountDropdownRef.current.open =
+                    false
+                }
+
+                logout()
+              }}
             >
-              <span className="account-menu-icon">
+              <span
+                className="account-menu-icon"
+                aria-hidden="true"
+              >
                 ↪
               </span>
 
@@ -421,10 +715,16 @@ export function HomePage() {
             type="button"
             onClick={() => {
               setCreateError('')
-              setIsCreateModalOpen(true)
+
+              setIsCreateModalOpen(
+                true,
+              )
             }}
           >
-            <span className="button-plus">
+            <span
+              className="button-plus"
+              aria-hidden="true"
+            >
               +
             </span>
 
@@ -457,7 +757,8 @@ export function HomePage() {
             </strong>
 
             <small>
-              de {totalPages} página(s)
+              de {totalPages}{' '}
+              página(s)
             </small>
           </article>
 
@@ -467,7 +768,8 @@ export function HomePage() {
             </span>
 
             <strong>
-              {data?.users.length ?? 0}
+              {data?.users.length ??
+                0}
             </strong>
 
             <small>
@@ -497,25 +799,19 @@ export function HomePage() {
           </div>
 
           {isLoading && (
-            <div className="state-box">
-              <div className="loading-spinner" />
-
-              <p>
-                Carregando usuários...
-              </p>
-            </div>
-          )}
+  <UserListSkeleton />
+)}
 
           {isError && (
             <div className="state-box">
               <strong>
-                Não foi possível carregar
-                os usuários.
+                Não foi possível
+                carregar os usuários.
               </strong>
 
               <p>
-                Verifique sua conexão e
-                tente novamente.
+                Verifique sua conexão
+                e tente novamente.
               </p>
 
               <button
@@ -532,15 +828,17 @@ export function HomePage() {
 
           {!isLoading &&
             !isError &&
-            data?.users.length === 0 && (
+            data?.users.length ===
+              0 && (
               <div className="state-box">
                 <strong>
-                  Nenhum usuário encontrado.
+                  Nenhum usuário
+                  encontrado.
                 </strong>
 
                 <p>
-                  Crie o primeiro usuário
-                  para começar.
+                  Crie o primeiro
+                  usuário para começar.
                 </p>
               </div>
             )}
@@ -548,24 +846,28 @@ export function HomePage() {
           {!isLoading &&
             !isError &&
             data &&
-            data.users.length > 0 && (
+            data.users.length >
+              0 && (
               <>
                 <div className="users-list">
                   {data.users.map(
                     (user) => {
                       /*
-                       * CONTA ADMIN PROTEGIDA
+                       * CONTA ADMIN
+                       * PROTEGIDA
                        *
-                       * ID #1 = conta principal.
+                       * ID #1 =
+                       * conta principal.
                        *
-                       * - O próprio Admin pode
-                       *   editar a sua conta.
+                       * Admin pode editar
+                       * sua própria conta.
                        *
-                       * - Outros usuários não
-                       *   podem editar o Admin.
+                       * Outros usuários
+                       * não podem editar
+                       * o Admin.
                        *
-                       * - Ninguém pode excluir
-                       *   a conta Admin.
+                       * Ninguém pode
+                       * excluir Admin.
                        */
 
                       const isAdminAccount =
@@ -586,7 +888,9 @@ export function HomePage() {
                       return (
                         <article
                           className="user-card"
-                          key={user.id}
+                          key={
+                            user.id
+                          }
                         >
                           <div className="user-main">
                             <div className="user-avatar">
@@ -598,7 +902,9 @@ export function HomePage() {
                             <div className="user-info">
                               <div className="user-name-row">
                                 <h3>
-                                  {user.name}
+                                  {
+                                    user.name
+                                  }
                                 </h3>
 
                                 {user.id ===
@@ -610,11 +916,16 @@ export function HomePage() {
                               </div>
 
                               <p>
-                                {user.email}
+                                {
+                                  user.email
+                                }
                               </p>
 
                               <span className="user-id">
-                                ID #{user.id}
+                                ID #
+                                {
+                                  user.id
+                                }
                               </span>
                             </div>
                           </div>
@@ -694,19 +1005,18 @@ export function HomePage() {
                         page === 1
                       }
                       onClick={() =>
-                        setPage(
-                          (
-                            currentPage,
-                          ) =>
-                            currentPage -
-                            1,
+                        goToPage(
+                          page - 1,
                         )
                       }
                     >
                       ← Anterior
                     </button>
 
-                    <span className="pagination-current">
+                    <span
+                      className="pagination-current"
+                      aria-current="page"
+                    >
                       {page}
                     </span>
 
@@ -718,12 +1028,8 @@ export function HomePage() {
                         totalPages
                       }
                       onClick={() =>
-                        setPage(
-                          (
-                            currentPage,
-                          ) =>
-                            currentPage +
-                            1,
+                        goToPage(
+                          page + 1,
                         )
                       }
                     >
@@ -736,11 +1042,16 @@ export function HomePage() {
         </section>
       </section>
 
-      {selectedUserId !== null && (
+      {selectedUserId !==
+        null && (
         <UserDetailsModal
-          userId={selectedUserId}
+          userId={
+            selectedUserId
+          }
           onClose={() =>
-            setSelectedUserId(null)
+            setSelectedUserId(
+              null,
+            )
           }
         />
       )}
@@ -754,7 +1065,10 @@ export function HomePage() {
           }
           onClose={() => {
             setCreateError('')
-            setIsCreateModalOpen(false)
+
+            setIsCreateModalOpen(
+              false,
+            )
           }}
           onSubmit={async (
             formData,
@@ -778,7 +1092,10 @@ export function HomePage() {
           }
           onClose={() => {
             setEditError('')
-            setEditingUser(null)
+
+            setEditingUser(
+              null,
+            )
           }}
           onSubmit={async (
             formData,
@@ -787,7 +1104,8 @@ export function HomePage() {
 
             await updateUserMutation.mutateAsync(
               {
-                id: editingUser.id,
+                id:
+                  editingUser.id,
 
                 data:
                   formData as UpdateUserData,
@@ -806,7 +1124,10 @@ export function HomePage() {
           error={deleteError}
           onCancel={() => {
             setDeleteError('')
-            setDeletingUser(null)
+
+            setDeletingUser(
+              null,
+            )
           }}
           onConfirm={() =>
             deleteUserMutation.mutate(
@@ -830,7 +1151,9 @@ export function HomePage() {
 
       {successMessage && (
         <Toast
-          message={successMessage}
+          message={
+            successMessage
+          }
           onClose={() =>
             setSuccessMessage('')
           }

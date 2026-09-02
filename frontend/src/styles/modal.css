@@ -684,3 +684,18 @@
     flex-direction: column-reverse;
   }
 }
+
+.modal-card :is(
+  button,
+  input,
+  select,
+  textarea,
+  a
+):focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 3px;
+}
+
+.modal-password-toggle:focus-visible {
+  border-radius: 8px;
+}
