@@ -86,6 +86,17 @@ O Vite exibirá o endereço da aplicação, normalmente:
 http://localhost:5173
 ```
 
+## Credenciais de teste
+
+Para acessar a aplicação após iniciar o backend e o frontend:
+
+```text
+E-mail: admin@example.com
+Senha: 123456
+```
+
+Também é possível criar uma nova conta pela página de cadastro.
+
 ## Rotas
 
 | Rota | Descrição |
